@@ -24,6 +24,7 @@ DUP_MAX = 6  # pHash Hamming distance at or below this = reused photo
 KNOWN_HASHES = DATA_DIR / "known_hashes.json"  # cache of pHashes of every photo in data/pairs
 REUSE_MAX_SHIFT_PX = 8  # near-identical hash AND corners move less than this under Gate 1's homography = same photo
 REUSE_MAX_PIXEL_DIFF = 4.0  # ...or, after alignment, mean grey difference below this = resized/re-saved copy of the same photo
+REUSE_FRAMING_MAX_DIFF = 8.0  # same framing only counts as reuse if aligned pixels also differ by less than this
 SCREEN_PEAK_MIN = 4.0  # FFT moire: strongest periodic peak (log units above the radial average) to call it a screen
 SCREEN_BANDING_MIN = 0.45  # fraction of empty grey levels inside the photo's range (posterised / low colour depth)
 
@@ -38,6 +39,15 @@ GARBAGE_ROUGH_MIN = 14.0  # ...or strongly textured clutter
 CLOSE_PX = 15  # morphology size joining defect pixels into one blob
 MIN_DEFECT_PCT = 0.3  # defect blob must cover at least this % of the photo
 EDGE_WEIGHT = 0.2  # share of the score taken from edge density change (rest = residual area)
+
+# Box-based look-alike measure: used ONLY when a defect box (roi) is given. roi=None keeps the segmentation above.
+ROI_DISTRIBUTION_MEASURE = True
+BOX_RING_SCALE = 0.21  # ring around the box grows each side by this x box size (ring area about equal to box area)
+BOX_W_TEXTURE = 0.8  # defect-ness = weighted sum of: local texture (std of L) difference box vs ring...
+BOX_W_EDGE = 0.1  # ...edge density difference...
+BOX_W_HIST = 0.1  # ...and Bhattacharyya distance of 8x8x8 LAB histograms (low: fresh black asphalt differs in colour too)
+BOX_UNCHANGED_MAX = 0.12  # mean abs diff of illumination-normalised box content below this = "nothing changed in the box"
+BOX_RESIDUAL_MAX = 1.2  # residual = clip(d_after / d_before, 0, this)
 
 # Verdict: residual_adjusted = (1 - EDGE_WEIGHT) * residual_area + EDGE_WEIGHT * min(edge_ratio, 1)
 #          score = clip(1 - residual_adjusted, 0, 1)

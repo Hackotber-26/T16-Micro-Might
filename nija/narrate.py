@@ -123,7 +123,9 @@ def template_note(verdict, score, checks):
     else:
         officer = (
             f"Verdict {verdict} (score {score:.2f}): {m['residual_area_pct']}% of the original {m['defect_type']} area "
-            f"is still detected after alignment ({g1['inliers']} matching points, edge density ratio {m['edge_density_ratio']})."
+            f"is still detected after alignment ({g1['inliers']} matching points, "
+            + (f"edge density ratio {m['edge_density_ratio']})." if "edge_density_ratio" in m
+               else f"box vs road distance {m.get('d_before')} before, {m.get('d_after')} after).")
         )
         citizen = {
             "Verified": "The photos show the repair was done. Thank you for reporting it.",

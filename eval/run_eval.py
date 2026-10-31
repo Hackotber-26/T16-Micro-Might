@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from nija import config, verify  # noqa: E402
-from nija.reinspect import list_pairs  # noqa: E402
+from nija.reinspect import label_roi, list_pairs  # noqa: E402
 
 VERDICTS = ["Verified", "Partial", "Not fixed", "Cannot verify"]
 TRUTHS = ["fixed", "partial", "not_fixed", "unverifiable"]
@@ -98,7 +98,7 @@ def main():
     for i, (p, label) in enumerate(items, 1):
         defect_type = label.get("type") if label.get("type") in ("pothole", "garbage") else None
         t = time.perf_counter()
-        r = verify(p / "before.jpg", p / "after.jpg", defect_type=defect_type, use_gemma=False)
+        r = verify(p / "before.jpg", p / "after.jpg", roi=label_roi(label), defect_type=defect_type, use_gemma=False)
         sec = time.perf_counter() - t
         row = {
             "pair": p.name, "source": "synthetic" if label.get("synthetic") else "real", "type": label.get("type", ""),

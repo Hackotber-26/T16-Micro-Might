@@ -19,7 +19,7 @@ def build_queue(pairs_dir=None):
     for d in list_pairs(pairs_dir):
         label = _read_label(d)
         defect_type = label.get("type") if label.get("type") in ("pothole", "garbage") else None
-        r = verify(d / "before.jpg", d / "after.jpg", defect_type=defect_type, use_gemma=False)
+        r = verify(d / "before.jpg", d / "after.jpg", roi=label_roi(label), defect_type=defect_type, use_gemma=False)
         checks = r["checks"]
         failed = next((checks[g] for g in ("gate1", "gate2") if not checks[g]["passed"]), None)
         rows.append({
@@ -37,6 +37,12 @@ def build_queue(pairs_dir=None):
     for i, row in enumerate(rows, 1):
         row["priority"] = i
     return rows
+
+
+def label_roi(label):
+    """Defect box (x, y, w, h fractions of the after photo) from label.json, or None."""
+    roi = label.get("roi")
+    return tuple(float(v) for v in roi) if isinstance(roi, (list, tuple)) and len(roi) == 4 else None
 
 
 def _read_label(pair_dir):

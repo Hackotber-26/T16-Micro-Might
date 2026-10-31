@@ -152,6 +152,8 @@ def heatmap_image(images):
 
 # Stage 6
 def contours_image(images, measure):
+    if "d_before" in measure and "box_overlay" in images:  # box-based measure: box, ring and change heatmap
+        return images["box_overlay"]
     region = images.get("region")
     if region is None:
         return None
@@ -174,6 +176,15 @@ def residual_bars_html(measure, lang="EN"):
     b, a = measure.get("before_defect_px") or 0, measure.get("after_defect_px") or 0
     if not b:
         return None
+    if "d_before" in measure:  # box-based measure: show the two look-alike distances, not areas
+        db, da = measure["d_before"], measure["d_after"]
+        top = max(db, da, 1e-6)
+        cell = lambda label, v, colour: (f"<div style='margin:8px 0'><div style='display:flex;justify-content:space-between;font-weight:600'>"
+                                         f"<span>{html.escape(label)}</span><span>{v:.2f}</span></div><div style='background:#EFE6CF;"
+                                         f"border-radius:999px;height:18px'><div style='width:{100 * v / top:.1f}%;height:18px;"
+                                         f"border-radius:999px;background:{colour}'></div></div></div>")
+        return ("<div class='nija-card' style='border-left-color:#F5B700'>" + cell(t("bar_box_before", lang), db, "#1B7F3B")
+                + cell(t("bar_box_after", lang), da, "#C62828") + f"<p class='src'>{html.escape(t('bar_box_note', lang))}</p></div>")
     pct_a = min(100.0, 100.0 * a / b)
     edge = measure.get("edge_density_ratio")
     seam = measure.get("seam_edge_density")
@@ -204,7 +215,9 @@ def plain_bullets(result, images, lang="EN"):
     if not g2["passed"]:
         out.append(t("b_gate2", lang, reason=reason_text(g2["reason"], lang)))
     b, a = m.get("before_defect_px") or 0, m.get("after_defect_px") or 0
-    if b and m.get("residual_area_pct") is not None:
+    if "d_before" in m and m.get("residual_area_pct") is not None:
+        out.append(t("b_box", lang, db=f"{m['d_before']:.2f}", da=f"{m['d_after']:.2f}", pct=f"{m['residual_area_pct']:.0f}"))
+    elif b and m.get("residual_area_pct") is not None:
         change = 100 * (1 - a / b)
         out.append(t("b_area", lang, b=f"{b:,}", a=f"{a:,}", pct=f"{abs(change):.0f}",
                      word=t("w_smaller" if change >= 0 else "w_larger", lang)))

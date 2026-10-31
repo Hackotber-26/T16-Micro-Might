@@ -1,0 +1,21 @@
+pair,source,type,truth,verdict,score,correct,bad,nija_flagged,nija_seconds
+g01,synthetic,garbage,fixed,Partial,0.787,False,False,True,1.36
+p01,synthetic,pothole,fixed,Partial,0.545,False,False,True,0.38
+p02,synthetic,pothole,partial,Not fixed,0.192,False,True,True,0.4
+p03,synthetic,pothole,not_fixed,Not fixed,0.0,True,True,True,0.69
+p04,synthetic,pothole,not_fixed,Not fixed,0.0,True,True,True,0.81
+g01_otherplace,synthetic,garbage,unverifiable,Cannot verify,,True,True,True,0.53
+g01_reused,synthetic,garbage,unverifiable,Cannot verify,,True,True,True,0.41
+g01_screen,synthetic,garbage,unverifiable,Cannot verify,,True,True,True,0.53
+p01_otherplace,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.4
+p01_reused,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.39
+p01_screen,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.57
+p02_otherplace,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.4
+p02_reused,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.43
+p02_screen,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.39
+p03_otherplace,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.42
+p03_reused,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.44
+p03_screen,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.57
+p04_otherplace,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.38
+p04_reused,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.41
+p04_screen,synthetic,pothole,unverifiable,Cannot verify,,True,True,True,0.53

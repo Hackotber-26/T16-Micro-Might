@@ -30,6 +30,8 @@ def measure_residual(before_bgr, after_bgr, H, roi=None, defect_type=None):
     """H maps after -> before. roi = (x, y, w, h) as FRACTIONS 0..1 of the after photo, or None for auto-detect.
     Returns (contract dict, debug images dict)."""
     defect_type = defect_type or config.DEFECT_TYPE
+    if roi and config.ROI_DISTRIBUTION_MEASURE:
+        return measure_box(before_bgr, after_bgr, H, roi, defect_type)
     h, w = after_bgr.shape[:2]
     H_inv = np.linalg.inv(H)
     before_al = cv2.warpPerspective(before_bgr, H_inv, (w, h))
@@ -95,6 +97,96 @@ def measure_residual(before_bgr, after_bgr, H, roi=None, defect_type=None):
         "method": method,
     }
     return result, _overlays(before_al, after_bgr, region, def_b, def_a, roi)
+
+
+def defectness(bgr, box, ring):
+    """How unlike the surrounding road the box looks: texture (std of L), edge density and LAB colour histograms."""
+    blur = cv2.GaussianBlur(bgr, (5, 5), 0)
+    lab = cv2.cvtColor(blur, cv2.COLOR_BGR2LAB)
+
+    def hist(mask):
+        h = cv2.calcHist([lab], [0, 1, 2], mask.astype(np.uint8) * 255, [8, 8, 8], [0, 256] * 3)
+        return cv2.normalize(h, h).flatten()
+
+    hist_d = float(cv2.compareHist(hist(box), hist(ring), cv2.HISTCMP_BHATTACHARYYA))
+    sd = _local_std(lab[:, :, 0], 15)
+    tex = min(abs(sd[box].mean() - sd[ring].mean()) / (sd[ring].mean() + 1e-6), 1.5)
+    edges = cv2.Canny(cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY), 60, 160) > 0
+    edge = min(abs(edges[box].mean() - edges[ring].mean()) / (edges[ring].mean() + 0.02), 1.5)
+    d = config.BOX_W_TEXTURE * tex + config.BOX_W_EDGE * edge + config.BOX_W_HIST * hist_d
+    return d, {"texture": round(float(tex), 3), "edge": round(float(edge), 3), "hist": round(hist_d, 3)}
+
+
+def measure_box(before_bgr, after_bgr, H, roi, defect_type):
+    """Box-based look-alike measure (only with a defect box): defect-ness of the box vs the road ring around it,
+    before (aligned onto the after frame) and after. residual = d_after / d_before. Same output keys as the segmentation path."""
+    h, w = after_bgr.shape[:2]
+    before_al = cv2.warpPerspective(before_bgr, np.linalg.inv(H), (w, h))
+    valid = cv2.warpPerspective(np.full(before_bgr.shape[:2], 255, np.uint8), np.linalg.inv(H), (w, h)) > 0
+    x, y, rw, rh = int(roi[0] * w), int(roi[1] * h), int(roi[2] * w), int(roi[3] * h)
+    box = np.zeros((h, w), bool)
+    box[y:y + rh, x:x + rw] = True
+    mx, my = int(config.BOX_RING_SCALE * rw), int(config.BOX_RING_SCALE * rh)
+    ring = np.zeros((h, w), bool)
+    ring[max(0, y - my):y + rh + my, max(0, x - mx):x + rw + mx] = True
+    box &= valid
+    ring &= valid & ~box
+    method = "box-based look-alike measure (box vs surrounding road)"
+    base = {"residual_area_pct": None, "before_defect_px": 0, "after_defect_px": 0, "relief_change": None,
+            "defect_type": defect_type, "method": method}
+    if box.sum() < 100 or ring.sum() < 100:
+        base["method"] = "box is outside the aligned photos, cannot measure"
+        return base, {"before_aligned": _rgb(before_al)}
+
+    d_before, parts_b = defectness(before_al, box, ring)
+    d_after, parts_a = defectness(after_bgr, box, ring)
+    # Illumination-normalised change inside the box (z-score each photo's box, then mean abs difference)
+    gb = cv2.cvtColor(before_al, cv2.COLOR_BGR2GRAY).astype(np.float32)[box]
+    ga = cv2.cvtColor(after_bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)[box]
+    change = float(np.abs((gb - gb.mean()) / (gb.std() + 1e-6) - (ga - ga.mean()) / (ga.std() + 1e-6)).mean())
+    if change < config.BOX_UNCHANGED_MAX:
+        residual, method = 1.0, method + "; nothing changed in the box"
+    elif d_before <= 1e-6:
+        base["method"] = "the box does not look different from the road in the before photo (try a tighter box)"
+        return base, {"before_aligned": _rgb(before_al)}
+    else:
+        residual = float(np.clip(d_after / d_before, 0, config.BOX_RESIDUAL_MAX))
+
+    box_px = int(box.sum())
+    result = {
+        "residual_area_pct": round(100 * residual, 1),
+        "before_defect_px": box_px,  # box size, not a segmented area
+        "after_defect_px": int(round(box_px * min(residual, 1.0))),  # box size x look-alike ratio
+        "relief_change": None,
+        "residual_adjusted": round(min(residual, 1.0), 3),
+        "d_before": round(float(d_before), 3),
+        "d_after": round(float(d_after), 3),
+        "box_change": round(change, 3),
+        "parts_before": parts_b,
+        "parts_after": parts_a,
+        "defect_type": defect_type,
+        "method": method,
+    }
+    return result, _box_overlays(before_al, after_bgr, box, ring, (x, y, rw, rh), d_before, d_after)
+
+
+def _box_overlays(before_al, after_bgr, box, ring, rect, d_before, d_after):
+    x, y, rw, rh = rect
+    diff = cv2.absdiff(cv2.cvtColor(before_al, cv2.COLOR_BGR2GRAY), cv2.cvtColor(after_bgr, cv2.COLOR_BGR2GRAY))
+    heat = cv2.applyColorMap(np.clip(diff.astype(np.float32) / 80 * 255, 0, 255).astype(np.uint8), cv2.COLORMAP_TURBO)
+    a = after_bgr.copy()
+    a[box] = (0.55 * heat[box] + 0.45 * a[box]).astype(np.uint8)
+    b = before_al.copy()
+    for img in (a, b):
+        tint = img.copy()
+        tint[ring] = (60, 200, 60)
+        img[:] = cv2.addWeighted(tint, 0.18, img, 0.82, 0)
+        cv2.rectangle(img, (x, y), (x + rw, y + rh), (0, 255, 255), 4)
+    for img, text in ((b, f"before: box vs road distance {d_before:.2f}"), (a, f"after: box vs road distance {d_after:.2f}")):
+        (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)
+        cv2.rectangle(img, (10, 12), (24 + tw, 22 + th + 8), (30, 38, 35), -1)
+        cv2.putText(img, text, (16, 20 + th), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2, cv2.LINE_AA)
+    return {"before_aligned": _rgb(before_al), "before_overlay": _rgb(b), "after_overlay": _rgb(a), "box_overlay": _rgb(a)}
 
 
 def _darker_than_surroundings(bgr, region, surround):

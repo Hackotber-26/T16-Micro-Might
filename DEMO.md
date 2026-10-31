@@ -15,6 +15,8 @@
 | Evaluation | 60 s | Numbers from `eval/results.md` only |
 | Why Karnataka | 60 s | Fact cards with sources, where Nija fits, limits card |
 
+**Photoreal pairs (synthetic AI images):** in **Geometry lab** pick `p02 (partial, synthetic AI photos, box)` or `p01`. The box measure compares the tapped defect box with the road around it. Say plainly: "these are AI-generated test photos; fully fixed pairs score Partial here, an honest limit."
+
 ### Problem (45 s)
 - "In Bengaluru a pothole complaint gets marked *resolved*. Nobody checks the closure photo at scale."
 - Open **Why Karnataka**: "Every complaint goes Report, Assign, Repair, **Close**. Close is where a ticket can be marked resolved with no photo, or a photo nobody checks."

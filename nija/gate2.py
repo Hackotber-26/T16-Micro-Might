@@ -38,7 +38,9 @@ def check_fresh(before_path, after_path, before_exif, after_exif, H=None, after_
     mad = _aligned_pixel_diff(H, before_bgr, after_bgr)
     same_framing = shift is None or shift <= config.REUSE_MAX_SHIFT_PX
     same_pixels = mad is not None and mad <= config.REUSE_MAX_PIXEL_DIFF  # resized / re-saved copy of the same picture
-    if dist <= config.DUP_MAX and (same_framing or same_pixels):
+    # Same camera pose alone is not reuse: a fixed-camera retake where only the defect changed has different pixels
+    framing_reuse = same_framing and (mad is None or mad <= config.REUSE_FRAMING_MAX_DIFF)
+    if dist <= config.DUP_MAX and (framing_reuse or same_pixels):
         how = "" if shift is None else f", camera moved {shift:.1f} px, aligned pixel difference {mad:.1f}"
         result["reused_from"] = "before photo"
         result["reason"] = f"reused photo: after is the before photo again (pHash distance {dist}{how})"

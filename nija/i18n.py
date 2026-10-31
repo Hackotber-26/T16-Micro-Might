@@ -320,6 +320,17 @@ FACTS = [
      "India Code (the Act)", "https://www.indiacode.nic.in/bitstream/123456789/19592/1/13of2023%28e%29_k_%26_c.pdf"),
 ]
 
+EN.update({
+    "bar_box_before": "Box vs road distance, before", "bar_box_after": "Box vs road distance, after",
+    "bar_box_note": "Box-based look-alike measure: how unlike the surrounding road the box looks (texture, edges, colour).",
+    "b_box": "Inside the defect box, the look-alike distance to the surrounding road went from {db} to {da}, so {pct}% of the defect look remains.",
+})
+KN.update({
+    "bar_box_before": "ಪೆಟ್ಟಿಗೆ ಮತ್ತು ರಸ್ತೆ ನಡುವಿನ ಅಂತರ, ಮೊದಲು", "bar_box_after": "ಪೆಟ್ಟಿಗೆ ಮತ್ತು ರಸ್ತೆ ನಡುವಿನ ಅಂತರ, ನಂತರ",
+    "bar_box_note": "ಪೆಟ್ಟಿಗೆ ಆಧಾರಿತ ಹೋಲಿಕೆ ಅಳತೆ: ಪೆಟ್ಟಿಗೆಯ ಒಳಭಾಗ ಸುತ್ತಲಿನ ರಸ್ತೆಗಿಂತ ಎಷ್ಟು ಭಿನ್ನವಾಗಿದೆ (ವಿನ್ಯಾಸ, ಅಂಚು, ಬಣ್ಣ).",
+    "b_box": "ಸಮಸ್ಯೆ ಪೆಟ್ಟಿಗೆಯೊಳಗೆ ಸುತ್ತಲಿನ ರಸ್ತೆಗೆ ಹೋಲಿಕೆ ಅಂತರ {db} ನಿಂದ {da} ಗೆ ಬದಲಾಗಿದೆ, ಅಂದರೆ ಸಮಸ್ಯೆಯ ನೋಟದ {pct}% ಉಳಿದಿದೆ.",
+})
+
 LANGS = {"EN": EN, "ಕನ್ನಡ": KN, "KN": KN}
 
 
@@ -359,6 +370,7 @@ REASON_KN = [
     (r"auto: largest blob", "ಸ್ವಯಂ ಪತ್ತೆ: ದೊಡ್ಡ ಸಮಸ್ಯೆ ಭಾಗ"),
     (r"manual ROI box", "ಕೈಯಾರೆ ಪೆಟ್ಟಿಗೆ"),
 ]
+REASON_KN.append((r"box-based look-alike measure", "ಪೆಟ್ಟಿಗೆ ಆಧಾರಿತ ಹೋಲಿಕೆ ಅಳತೆ (ಪೆಟ್ಟಿಗೆ ಮತ್ತು ಸುತ್ತಲಿನ ರಸ್ತೆ)"))
 GPS_KN = (r"GPS (\d+) m apart", "GPS ಪ್ರಕಾರ {0} ಮೀ ದೂರ")
 TIME_MISSING_KN = "EXIF ಸಮಯ ಇಲ್ಲ, ಸಮಯ ಕ್ರಮ ಪರಿಶೀಲಿಸಿಲ್ಲ"
 

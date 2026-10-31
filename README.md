@@ -132,6 +132,11 @@ Kannada text is machine drafted: have a Kannada speaker review it before real us
 ```
 The Gemma baseline takes about 4-6 s per pair the first time. Answers are cached in `eval/results_cache/`, so reruns take seconds.
 
+## Box-based measure (photoreal photos)
+- When a defect box is given (sidebar box, or `"roi"` in `label.json`; in real use the citizen or officer taps the defect on the complaint photo), Nija uses a **box-based look-alike measure**: how unlike the surrounding road ring the box looks (local texture, edges, LAB colour histograms), before vs after. Without a box, the original segmentation runs unchanged.
+- `data/pairs/g01, p01-p04` are **synthetic AI-generated street photos** (labelled `"synthetic": true`), not real field photos. On them, the box measure ranks fixed > partial > not fixed, but fully fixed pairs score Partial, not Verified.
+- **Honest limitation:** the original "dark + rough" segmentation does not generalise to photoreal asphalt texture (it flags the whole road). That is why the box measure exists; fresh black asphalt also differs in colour, so colour has a low weight.
+
 ## Honest limitations
 - **Small, self-made test set** (about 40 pairs shot by us, plus synthetic fakes). The numbers show the method works; they are not a benchmark.
 - **Heuristics, not trained models.** Defect segmentation (darker + rough for potholes, colour/texture clutter for garbage) and the screen check (FFT moire) are hand-tuned rules. Auto-detect can pick the wrong blob (use the manual box), and a very dark fresh patch can look like a remaining pothole.

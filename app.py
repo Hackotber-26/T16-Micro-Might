@@ -19,7 +19,7 @@ import streamlit.components.v1 as components
 from nija import config, evidence, ui, verify, visuals
 from nija.i18n import FACTS, is_kn, note_kn, reason_text, t as _t, verdict_label
 from nija.narrate import build_facts, translate_kn, warm_up
-from nija.reinspect import build_queue, list_pairs
+from nija.reinspect import _read_label, build_queue, label_roi, list_pairs
 
 SAMPLES = config.ROOT / "samples"
 GATES = ("gate1", "gate2")
@@ -84,11 +84,11 @@ def save_bytes(data, name, folder):
     return path
 
 
-def safe_verify(pair, gemma=None):
-    """Runs the cached verify with the sidebar settings; shows a friendly error instead of a stack trace."""
+def safe_verify(pair, gemma=None, box=None, kind=None):
+    """Runs the cached verify with the sidebar settings (or a pair's saved defect box); friendly error, never a stack trace."""
     with st.spinner(L("spinner")):
         try:
-            return run_verify(*pair, roi, defect_type, use_gemma if gemma is None else gemma)
+            return run_verify(*pair, box or roi, kind or defect_type, use_gemma if gemma is None else gemma)
         except Exception as e:
             st.error(L("err_process", err=type(e).__name__))
             return None, None
@@ -448,14 +448,22 @@ with tab_verify:
 
 with tab_lab:
     st.write(L("lab_intro"))
-    options = list(LAB_SAMPLES) + (["lab_last"] if "last_pair" in st.session_state else [])
-    pick = st.selectbox(L("lab_source"), options, index=1, format_func=L, key="lab_pick")
+    boxed = {p.name: _read_label(p) for p in list_pairs() if label_roi(_read_label(p))}  # pairs with a saved defect box
+    options = list(LAB_SAMPLES) + [f"pair:{n}" for n in boxed] + (["lab_last"] if "last_pair" in st.session_state else [])
+    pick = st.selectbox(L("lab_source"), options, index=1, key="lab_pick",
+                        format_func=lambda o: f"{o[5:]} ({boxed[o[5:]].get('label', '')}, synthetic AI photos, box)" if o.startswith("pair:") else L(o))
     clicked = st.button(L("lab_run"), type="primary", key="lab_run")
     if clicked:
-        st.session_state["lab_pair"] = (st.session_state["last_pair"] if pick == "lab_last"
-                                        else sample_pair(LAB_SAMPLES[pick]))
+        if pick.startswith("pair:"):
+            d, lab = config.PAIRS_DIR / pick[5:], boxed[pick[5:]]
+            st.session_state["lab_pair"] = (((d / "before.jpg").read_bytes(), "before.jpg", (d / "after.jpg").read_bytes(), "after.jpg"),
+                                            label_roi(lab), lab.get("type"))
+        else:
+            st.session_state["lab_pair"] = (st.session_state["last_pair"] if pick == "lab_last"
+                                            else sample_pair(LAB_SAMPLES[pick]), None, None)
     if st.session_state.get("lab_pair"):
-        result, images = safe_verify(st.session_state["lab_pair"], gemma=False)
+        lab_pair, lab_box, lab_kind = st.session_state["lab_pair"]
+        result, images = safe_verify(lab_pair, gemma=False, box=lab_box, kind=lab_kind)
         if result:
             show_geometry_lab(result, images, live=clicked)
 
