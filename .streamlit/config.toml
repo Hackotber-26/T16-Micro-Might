@@ -1,7 +1,14 @@
-# Keeps the demo fully offline: no usage stats sent, no browser auto-open surprises
+# Keeps the demo fully offline (no usage stats) and matches the Nija design system in nija/ui.py
 [browser]
 gatherUsageStats = false
 
 [server]
 headless = false
 maxUploadSize = 50
+
+[theme]
+base = "light"
+primaryColor = "#0F5C5C"
+backgroundColor = "#FFF8E7"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1E2623"

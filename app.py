@@ -7,12 +7,11 @@ from pathlib import Path
 
 import streamlit as st
 
-from nija import config, verify
+from nija import config, ui, verify
 from nija.narrate import warm_up
 from nija.reinspect import build_queue, list_pairs
 
 SAMPLES = config.ROOT / "samples"
-BADGE_COLOURS = {"Verified": "#1e8e3e", "Partial": "#f9a825", "Not fixed": "#d93025", "Cannot verify": "#5f6368"}
 GATES = (("gate1", "Gate 1 - same place"), ("gate2", "Gate 2 - real and fresh photo"))
 ATTACKS = {  # one-click attacks for the demo; all built from the SYNTHETIC sample pair
     "Old photo reused": ("synthetic_attack_reused.jpg", "The BEFORE photo itself, shrunk and re-saved, submitted as the 'after'."),
@@ -20,7 +19,8 @@ ATTACKS = {  # one-click attacks for the demo; all built from the SYNTHETIC samp
     "Different place": ("synthetic_after_otherplace.jpg", "A clean-road photo taken somewhere else."),
 }
 
-st.set_page_config(page_title="Nija - Proof of Fix", layout="wide")
+st.set_page_config(page_title="Nija - Proof of Fix", page_icon="🛣️", layout="wide")
+ui.inject_css()
 
 
 @st.cache_resource
@@ -64,11 +64,7 @@ def safe_verify(before_bytes, before_name, after_bytes, after_name):
 
 
 def badge(verdict):
-    st.markdown(
-        f"<div style='display:inline-block;padding:10px 22px;border-radius:8px;color:white;font-size:28px;"
-        f"font-weight:700;background:{BADGE_COLOURS[verdict]}'>{verdict}</div>",
-        unsafe_allow_html=True,
-    )
+    ui.verdict_badge(verdict)
 
 
 def show_result(result, images):
@@ -128,9 +124,15 @@ def show_caught(result):
 
 
 start_gemma_warm_up()
-st.title("Nija - Proof of Fix")
-st.caption("Checks whether a civic repair was really done from before/after photos. Gates and measurements decide the verdict; "
-           "Gemma 4 only writes the notes. Runs fully offline on this laptop.")
+with st.container(key="nija_header"):
+    h1, h2 = st.columns([3, 2], vertical_alignment="center")
+    h1.markdown("**Nija** · Proof of Fix")
+    st.session_state.setdefault("lang", "EN")
+    h2.segmented_control("Language", ["EN", "ಕನ್ನಡ"], key="lang", label_visibility="collapsed")
+ui.hero("Nija - Proof of Fix",
+        "Was the pothole really fixed? Nija compares the complaint photo with the closure photo and flags fake or half-done repairs.")
+ui.step_pills(["1 Same place", "2 Real, fresh photo", "3 Measure what is left", "4 Verdict", "5 Note by Gemma 4"])
+st.caption("Gates and measurements decide the verdict. Gemma 4 only writes the notes. Runs fully offline on this laptop.")
 
 with st.sidebar:
     st.header("Settings")
