@@ -6,7 +6,7 @@ It's a **verification layer**, not "ask an AI if it looks fixed". Classical comp
 ```
 before.jpg + after.jpg
    -> Gate 1: same place?        (EXIF GPS/compass, ORB + RANSAC homography)
-   -> Gate 2: real, fresh photo? (pHash reuse check, EXIF time order, screen check [Step 3])
+   -> Gate 2: real, fresh photo? (pHash reuse vs before + all data/pairs photos, EXIF time order, screen heuristic)
    -> align + measure residual   (Step 1: grey-level change placeholder; Step 4: defect segmentation)
    -> score -> Verified / Partial / Not fixed / Cannot verify
    -> note (template now; Gemma 4 from Step 5)
@@ -46,10 +46,11 @@ python -m venv .venv                                   # first time only
 | `nija/images.py` | Loads a photo, fixes phone rotation from EXIF, downsizes to 1280 px. All modules use the same pixels. |
 | `nija/exif.py` | Reads capture time, GPS and compass heading from EXIF, plus haversine distance. Missing data is `None` (unknown), never a fail. |
 | `nija/gate1.py` | Same place: GPS/compass when present, then ORB matching + RANSAC homography. The homography is reused to align the photos. |
-| `nija/gate2.py` | Real and fresh: pHash catches reused photos, and EXIF time must move forward. Screen-recapture check comes in Step 3. |
+| `nija/gate2.py` | Real and fresh: pHash catches reused photos (vs before and every photo in `data/pairs`, cached in `data/known_hashes.json`), EXIF time must move forward. A screen HEURISTIC (FFT moire peaks + banding) flags photos of a monitor. |
 | `nija/measure.py` | Aligns after onto before and measures how much of the defect region remains. Step 1 is an honest grey-level placeholder. |
 | `nija/verdict.py` | Turns checks into a score and one of 4 verdicts. A failed gate gives Cannot verify with no score. |
 | `nija/narrate.py` | Writes the officer note and citizen message from the numbers. Template now, Gemma 4 in Step 5; it never decides the verdict. |
+| `eval/screen_score.py` | Prints the screen-recapture scores for any photos. Use it to calibrate the screen thresholds in config.py. |
 | `eval/` | Evaluation scripts (Step 6): fake generation and metrics on `data/pairs`. |
 
 ## Data shoot checklist (target: 40 pairs)
@@ -67,5 +68,5 @@ python -m venv .venv                                   # first time only
 
 ## Honest limitations (so far)
 - The Step 1 residual is a grey-level change heuristic, not segmentation.
-- The screen-recapture check is not built yet.
+- The screen-recapture check is a heuristic (FFT moire + banding), tuned on a simulated screen photo. Calibrate it on a real monitor photo.
 - Depth is not measured. When added it will be relative, not metric.

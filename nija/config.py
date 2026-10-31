@@ -21,8 +21,10 @@ MIN_INLIER_RATIO = 0.25
 
 # Gate 2: real and fresh
 DUP_MAX = 6  # pHash Hamming distance at or below this = reused photo
-KNOWN_HASHES = DATA_DIR / "known_hashes.json"  # used from Step 3
-HISTORY_DIR = DATA_DIR / "history"  # Step 1 stand-in for known_hashes.json
+KNOWN_HASHES = DATA_DIR / "known_hashes.json"  # cache of pHashes of every photo in data/pairs
+REUSE_MAX_SHIFT_PX = 8  # near-identical hash AND corners move less than this under Gate 1's homography = same photo
+SCREEN_PEAK_MIN = 4.0  # FFT moire: strongest periodic peak (log units above the radial average) to call it a screen
+SCREEN_BANDING_MIN = 0.45  # fraction of empty grey levels inside the photo's range (posterised / low colour depth)
 
 # Measure (Step 1 placeholder: grey-level change, not defect segmentation)
 DIFF_THRESHOLD = 30  # grey-level change (after brightness match) that counts as "changed"

@@ -9,9 +9,7 @@ __pycache__/
 
 # Photos and model weights stay local (keep the folders via .gitkeep)
 data/pairs/*
-data/history/*
 !data/pairs/.gitkeep
-!data/history/.gitkeep
 data/known_hashes.json
 eval/results_cache/
 *.pt
