@@ -34,15 +34,16 @@ def verify(before_path, after_path, roi=None, debug=False):
     before, after = load_bgr(before_path), load_bgr(after_path)
     t = lap("load", t)
 
-    gate1, H = check_same_place(before, after, before_exif, after_exif)
+    images = {}
+    gate1, H = check_same_place(before, after, before_exif, after_exif, debug=images if debug else None)
     t = lap("gate1", t)
     gate2 = check_fresh(before_path, after_path, before_exif, after_exif)
     t = lap("gate2", t)
 
-    images = {}
     measure = dict(SKIPPED_MEASURE)
     if gate1["passed"] and gate2["passed"]:
-        measure, images = measure_residual(before, after, H, roi)
+        measure, measure_images = measure_residual(before, after, H, roi)
+        images.update(measure_images)
     t = lap("measure", t)
 
     verdict, score = decide(gate1, gate2, measure)

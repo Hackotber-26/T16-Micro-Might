@@ -8,8 +8,34 @@ from . import config
 from .exif import gps_distance_m
 
 
-def check_same_place(before_bgr, after_bgr, before_exif, after_exif):
-    """Returns (result dict, homography mapping after -> before, or None)."""
+def draw_matches(before_bgr, kp_b, after_bgr, kp_a, good, mask=None, max_lines=150):
+    """Side-by-side image (before | after) with match lines; green = RANSAC inlier, red = rejected."""
+    def spread(idx, n):  # evenly spaced sample so lines cover the whole image
+        return idx[:: max(1, len(idx) // n)][:n]
+
+    flags = mask.ravel().astype(bool) if mask is not None else np.zeros(len(good), bool)
+    inl = [i for i in range(len(good)) if flags[i]]
+    rej = [i for i in range(len(good)) if not flags[i]]
+    keep = spread(inl, max_lines) + spread(rej, max_lines // 3)
+    h = max(before_bgr.shape[0], after_bgr.shape[0])
+    canvas = np.zeros((h, before_bgr.shape[1] + after_bgr.shape[1], 3), np.uint8)
+    canvas[: before_bgr.shape[0], : before_bgr.shape[1]] = before_bgr
+    canvas[: after_bgr.shape[0], before_bgr.shape[1]:] = after_bgr
+    for i in keep:
+        m = good[i]
+        p1 = tuple(int(v) for v in kp_b[m.trainIdx].pt)
+        x2, y2 = kp_a[m.queryIdx].pt
+        p2 = (int(x2) + before_bgr.shape[1], int(y2))
+        colour = (0, 200, 0) if flags[i] else (0, 0, 230)
+        cv2.line(canvas, p1, p2, colour, 1, cv2.LINE_AA)
+        cv2.circle(canvas, p1, 3, colour, -1)
+        cv2.circle(canvas, p2, 3, colour, -1)
+    return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+
+
+def check_same_place(before_bgr, after_bgr, before_exif, after_exif, debug=None):
+    """Returns (result dict, homography mapping after -> before, or None).
+    If a dict is passed as debug, a match-line image is stored in debug["gate1_matches"]."""
     result = {
         "passed": False,
         "reason": "",
@@ -51,6 +77,8 @@ def check_same_place(before_bgr, after_bgr, before_exif, after_exif):
     pairs = cv2.BFMatcher(cv2.NORM_HAMMING).knnMatch(des_a, des_b, k=2)
     good = [p[0] for p in pairs if len(p) == 2 and p[0].distance < config.LOWE_RATIO * p[1].distance]
     result["good_matches"] = len(good)
+    if debug is not None:
+        debug["gate1_matches"] = draw_matches(before_bgr, kp_b, after_bgr, kp_a, good)
     if len(good) < config.MIN_INLIERS:
         result["reason"] = f"only {len(good)} feature matches (need {config.MIN_INLIERS}); likely a different place"
         return result, None
@@ -62,6 +90,8 @@ def check_same_place(before_bgr, after_bgr, before_exif, after_exif):
         result["reason"] = "could not fit a homography between the photos"
         return result, None
 
+    if debug is not None:
+        debug["gate1_matches"] = draw_matches(before_bgr, kp_b, after_bgr, kp_a, good, mask)
     inliers = int(mask.sum())
     ratio = inliers / len(good)
     result["inliers"] = inliers

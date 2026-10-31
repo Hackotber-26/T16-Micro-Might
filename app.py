@@ -61,7 +61,7 @@ if st.button("Verify", type="primary", disabled=not (before_file and after_file)
     st.write(f"**Citizen:** {note['citizen']}")
     st.caption(f"Written by: {note['source']}")
 
-    if images:
+    if "aligned_after" in images:
         c1, c2 = st.columns(2)
         c1.image(images["aligned_after"], caption="After photo aligned onto before", width="stretch")
         c2.image(images["overlay"], caption="Region checked: green = changed, red = unchanged", width="stretch")
@@ -73,6 +73,15 @@ if st.button("Verify", type="primary", disabled=not (before_file and after_file)
             if "reason" in check:
                 st.write(check["reason"])
             st.json(check)
+
+    with st.expander("Gate 1 debug - feature matches"):
+        if "gate1_matches" in images:
+            g1 = result["checks"]["gate1"]
+            st.image(images["gate1_matches"], width="stretch",
+                     caption=f"Before (left) | After (right). Green = RANSAC inlier, red = rejected. "
+                             f"{g1['inliers']} inliers / {g1['good_matches']} matches")
+        else:
+            st.write("No match image: too few features, or the GPS/compass check failed first.")
 
     with st.expander("Raw result (contract JSON)"):
         st.json(result)
