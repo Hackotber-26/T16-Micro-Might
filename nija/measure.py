@@ -119,7 +119,8 @@ def _overlays(before_al, after_bgr, region, def_b, def_a, roi):
             hh, ww = img.shape[:2]
             cv2.rectangle(img, (int(roi[0] * ww), int(roi[1] * hh)),
                           (int((roi[0] + roi[2]) * ww), int((roi[1] + roi[3]) * hh)), (255, 255, 0), 2)
-    return {"before_aligned": _rgb(before_al), "before_overlay": _rgb(b), "after_overlay": _rgb(a)}
+    return {"before_aligned": _rgb(before_al), "before_overlay": _rgb(b), "after_overlay": _rgb(a),
+            "region": region, "def_b": def_b, "def_a": def_a}  # masks for the Geometry Lab
 
 
 def _largest_blob(mask):

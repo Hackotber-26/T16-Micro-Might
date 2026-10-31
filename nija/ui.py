@@ -98,6 +98,7 @@ img {{ border-radius: 10px; }}
   .nija-hero h1 {{ font-size: 1.6rem; }}
   .nija-verdict {{ font-size: 1.5rem; padding: 12px 18px; width: 100%; justify-content: center; }}
   .nija-step {{ padding: 5px 10px; font-size: 0.85rem; }}
+  iframe[data-testid="stIFrame"] {{ height: 330px !important; }}  /* before/after slider: no blank space on phones */
   /* keep the sticky header on one row */
   .st-key-nija_header [data-testid="stHorizontalBlock"] {{ flex-wrap: nowrap; }}
   .st-key-nija_header [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{ min-width: 0 !important; flex: 1 1 auto !important; }}

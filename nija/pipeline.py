@@ -35,8 +35,10 @@ def verify(before_path, after_path, roi=None, defect_type=None, use_gemma=True, 
     before, after = load_bgr(before_path), load_bgr(after_path)
     t = lap("load", t)
 
-    images = {}
+    images = {"before_bgr": before, "after_bgr": after} if debug else {}
     gate1, H = check_same_place(before, after, before_exif, after_exif, debug=images if debug else None)
+    if debug:
+        images["H"] = H
     t = lap("gate1", t)
     gate2 = check_fresh(before_path, after_path, before_exif, after_exif, H=H, after_bgr=after, before_bgr=before)
     t = lap("gate2", t)

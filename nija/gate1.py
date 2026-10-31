@@ -70,6 +70,9 @@ def check_same_place(before_bgr, after_bgr, before_exif, after_exif, debug=None)
     orb = cv2.ORB_create(nfeatures=config.ORB_FEATURES)
     kp_b, des_b = orb.detectAndCompute(cv2.cvtColor(before_bgr, cv2.COLOR_BGR2GRAY), None)
     kp_a, des_a = orb.detectAndCompute(cv2.cvtColor(after_bgr, cv2.COLOR_BGR2GRAY), None)
+    if debug is not None:  # keypoint positions for the Geometry Lab (debug output only)
+        debug["kp_before"] = np.float32([k.pt for k in kp_b]) if kp_b else np.zeros((0, 2), np.float32)
+        debug["kp_after"] = np.float32([k.pt for k in kp_a]) if kp_a else np.zeros((0, 2), np.float32)
     if des_b is None or des_a is None or len(kp_b) < 10 or len(kp_a) < 10:
         result["reason"] = "too few visual features to compare the photos"
         return result, None

@@ -1,13 +1,16 @@
-"""Streamlit UI for Nija. Tabs: Verify (upload before + after), Try to fool Nija (one-click attacks + free upload),
-Re-inspection queue (all pairs in data/pairs ranked). Run with: python -m streamlit run app.py"""
+"""Streamlit UI for Nija. Tabs: Verify (upload before + after), Geometry lab (what changed, step by step), Try to fool Nija
+(one-click attacks + free upload), Re-inspection queue (all pairs in data/pairs ranked). Run with: python -m streamlit run app.py"""
 
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 
-from nija import config, ui, verify
+from nija import config, ui, verify, visuals
+from nija.i18n import t as _t
 from nija.narrate import warm_up
 from nija.reinspect import build_queue, list_pairs
 
@@ -19,8 +22,16 @@ ATTACKS = {  # one-click attacks for the demo; all built from the SYNTHETIC samp
     "Different place": ("synthetic_after_otherplace.jpg", "A clean-road photo taken somewhere else."),
 }
 
+LAB_SAMPLES = {"sample_fixed": "synthetic_after_fixed.jpg", "sample_partial": "synthetic_after_partial.jpg",
+               "sample_notfixed": "synthetic_after_notfixed.jpg", "sample_otherplace": "synthetic_after_otherplace.jpg"}
+
 st.set_page_config(page_title="Nija - Proof of Fix", page_icon="🛣️", layout="wide")
 ui.inject_css()
+
+
+def L(key, **fmt):
+    """Text in the language picked in the header (English until the Kannada strings are filled in)."""
+    return _t(key, st.session_state.get("lang"), **fmt)
 
 
 @st.cache_resource
@@ -53,11 +64,12 @@ def save_bytes(data, name, folder):
     return path
 
 
-def safe_verify(before_bytes, before_name, after_bytes, after_name):
+def safe_verify(before_bytes, before_name, after_bytes, after_name, gemma=None):
     """Runs the cached verify with the sidebar settings; shows a friendly error instead of a stack trace."""
     with st.spinner("Checking place, freshness and repair, then writing the note..."):
         try:
-            return run_verify(before_bytes, before_name, after_bytes, after_name, roi, defect_type, use_gemma)
+            return run_verify(before_bytes, before_name, after_bytes, after_name, roi, defect_type,
+                              use_gemma if gemma is None else gemma)
         except Exception as e:
             st.error(f"Could not process these photos ({type(e).__name__}: {e}). Try another pair of JPG/PNG photos.")
             return None, None
@@ -90,6 +102,8 @@ def show_result(result, images):
                  caption="Before, warped into the after frame: yellow = defect region, red = defect pixels")
         c2.image(images["after_overlay"], width="stretch", caption="After: red = defect pixels still detected")
 
+    show_geometry_compact(result, images)
+
     for name, label in GATES + (("measure", "Measure - residual"),):
         check = result["checks"][name]
         icon = "" if name == "measure" else ("✅ " if check["passed"] else "❌ ")
@@ -109,6 +123,85 @@ def show_result(result, images):
 
     with st.expander("Raw result (contract JSON)"):
         st.json(result)
+
+
+def show_geometry_compact(result, images):
+    """Three key geometry pictures and the plain-language bullets, inside every Verify result."""
+    if "after_bgr" not in images:
+        return
+    st.subheader(L("lab_compact"))
+    pics = [(visuals.homography_image(images), L("s3_t")), (visuals.heatmap_image(images), L("s5_t")),
+            (visuals.contours_image(images, result["checks"]["measure"]), L("s6_t"))]
+    pics = [(img, cap) for img, cap in pics if img is not None]
+    if pics:
+        for col, (img, cap) in zip(st.columns(len(pics)), pics):
+            col.image(img, caption=cap, width="stretch")
+    for b in visuals.plain_bullets(result, images):
+        st.markdown(f"- {b}")
+    st.caption(L("lab_open_full"))
+
+
+def show_geometry_lab(result, images, live=True):
+    """The 7 stages, revealed one after another inside st.status so it feels live."""
+    m = result["checks"]["measure"]
+    H = images.get("H")
+
+    def stage(title_key, caption_key):
+        status.update(label=L(title_key))
+        st.markdown(f"#### {L(title_key)}")
+        st.caption(L(caption_key))
+
+    def pause():
+        if live:
+            time.sleep(0.5)
+
+    def show_or_skip(img, skip_key):
+        if img is not None:
+            st.image(img, width="stretch")
+        else:
+            st.info(L(skip_key))
+
+    with st.status(L("lab_running"), expanded=True) as status:
+        stage("s1_t", "s1_c")
+        st.image(visuals.keypoints_image(images)[0], width="stretch")
+        pause()
+        stage("s2_t", "s2_c")
+        if "gate1_matches" in images:
+            g1 = result["checks"]["gate1"]
+            st.image(images["gate1_matches"], width="stretch", caption=f"{g1['inliers']} inliers / {g1['good_matches']} matches")
+        else:
+            st.info(L("lab_skip_gate1"))
+        pause()
+        stage("s3_t", "s3_c")
+        show_or_skip(visuals.homography_image(images), "lab_skip_gate1")
+        if H is not None:
+            st.markdown(f"**{visuals.homography_words(visuals.describe_homography(H, images['before_bgr'].shape))}**")
+        pause()
+        stage("s4_t", "s4_c")
+        slider = visuals.slider_html(images)
+        if slider:
+            components.html(slider, height=490, scrolling=False)
+        else:
+            st.info(L("lab_skip_gate1"))
+        pause()
+        stage("s5_t", "s5_c")
+        show_or_skip(visuals.heatmap_image(images), "lab_skip_gate1")
+        pause()
+        stage("s6_t", "s6_c")
+        show_or_skip(visuals.contours_image(images, m), "lab_skip_measure")
+        pause()
+        stage("s7_t", "s7_c")
+        bars = visuals.residual_bars_html(m)
+        if bars:
+            st.markdown(bars, unsafe_allow_html=True)
+        else:
+            st.info(L("lab_skip_measure"))
+        status.update(label=L("lab_done"), state="complete", expanded=True)
+
+    badge(result["verdict"])
+    st.subheader(L("lab_what"))
+    for b in visuals.plain_bullets(result, images):
+        st.markdown(f"- {b}")
 
 
 def show_caught(result):
@@ -148,7 +241,7 @@ with st.sidebar:
         rh = st.slider("height", 5, 100 - ry, min(50, 100 - ry))
         roi = (rx / 100, ry / 100, rw / 100, rh / 100)
 
-tab_verify, tab_fool, tab_queue = st.tabs(["Verify", "Try to fool Nija", "Re-inspection queue"])
+tab_verify, tab_lab, tab_fool, tab_queue = st.tabs(["Verify", L("lab_tab"), "Try to fool Nija", "Re-inspection queue"])
 
 with tab_verify:
     col_b, col_a = st.columns(2)
@@ -162,11 +255,27 @@ with tab_verify:
     if st.button("Verify", type="primary", disabled=not (before_file and after_file)):
         result, images = safe_verify(before_file.getvalue(), before_file.name, after_file.getvalue(), after_file.name)
         if result:
+            st.session_state["last_pair"] = (before_file.getvalue(), before_file.name, after_file.getvalue(), after_file.name)
             show_result(result, images)
             st.caption(
                 "Honesty note: the defect is found with classical CV heuristics (darker + rough for potholes, colour/texture "
                 "clutter for garbage), not a trained model. Use the manual box if auto-detect picks the wrong area. Depth is not measured."
             )
+
+with tab_lab:
+    st.write(L("lab_intro"))
+    options = [L(k) for k in LAB_SAMPLES] + ([L("lab_last")] if "last_pair" in st.session_state else [])
+    pick = st.selectbox(L("lab_source"), options, index=1)
+    if st.button(L("lab_run"), type="primary", key="lab_run"):
+        if pick == L("lab_last"):
+            pair = st.session_state["last_pair"]
+        else:
+            before_path = SAMPLES / "synthetic_before.jpg"
+            after_path = SAMPLES / LAB_SAMPLES[next(k for k in LAB_SAMPLES if L(k) == pick)]
+            pair = (before_path.read_bytes(), before_path.name, after_path.read_bytes(), after_path.name)
+        result, images = safe_verify(*pair, gemma=False)
+        if result:
+            show_geometry_lab(result, images)
 
 with tab_fool:
     st.write("Judges: try to get a fake repair past Nija. The **before** photo is the synthetic sample pothole below. "
