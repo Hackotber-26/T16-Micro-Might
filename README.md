@@ -9,7 +9,8 @@ before.jpg + after.jpg
    -> Gate 2: real, fresh photo? (pHash reuse vs before + all data/pairs photos, EXIF time order, screen heuristic)
    -> align + measure residual   (defect = largest dark+rough blob / garbage clutter, or manual box)
    -> score -> Verified / Partial / Not fixed / Cannot verify
-   -> note (template now; Gemma 4 from Step 5)
+   -> note (Gemma 4 from the numbers only; template fallback)
+   -> re-inspection queue (all pairs ranked most doubtful first)
 ```
 Failing Gate 1 or Gate 2 always gives **Cannot verify**. Nija never guesses.
 
@@ -39,7 +40,7 @@ python -m venv .venv                                   # first time only
 ## Files (2 lines each)
 | File | What it does |
 |---|---|
-| `app.py` | Streamlit UI: upload before/after, press Verify, see the verdict badge, score, per-check panels and note. Never shows a stack trace. |
+| `app.py` | Streamlit UI. **Verify** tab: upload before/after and see the verdict, score, overlays, checks and Gemma note. **Re-inspection queue** tab: all pairs ranked. Warms up Gemma at start and never shows a stack trace. |
 | `smoke_test.py` | Runs `verify()` on one pair from the command line and prints the contract JSON. Use it to test without the UI. |
 | `nija/config.py` | Every threshold lives here (GPS limit, inliers, pHash limit, verdict cut-offs). Tune numbers here, never inside modules. |
 | `nija/pipeline.py` | `verify()`, the single entry point: runs gate1, gate2, measure, verdict, narrate. Times each stage into `timings_ms`. |
@@ -49,7 +50,8 @@ python -m venv .venv                                   # first time only
 | `nija/gate2.py` | Real and fresh: pHash catches reused photos (vs before and every photo in `data/pairs`, cached in `data/known_hashes.json`), EXIF time must move forward. A screen HEURISTIC (FFT moire peaks + banding) flags photos of a monitor. |
 | `nija/measure.py` | Warps before into the after frame, finds the defect (largest dark+rough blob for potholes, colour/texture clutter for garbage, or a manual box) and counts how much is still there. Also reports edge-density change and a seam cue. |
 | `nija/verdict.py` | Turns checks into a score and one of 4 verdicts. A failed gate gives Cannot verify with no score. |
-| `nija/narrate.py` | Writes the officer note and citizen message from the numbers. Template now, Gemma 4 in Step 5; it never decides the verdict. |
+| `nija/narrate.py` | Gemma 4 (`gemma4:e2b`, local, text only, temperature 0) writes the officer note and citizen message from the measured numbers. Falls back to a template if Ollama is down or slow, or if Gemma writes a number not in the input. |
+| `nija/reinspect.py` | Runs `verify()` on every pair in `data/pairs` and ranks them Not fixed > Partial > Cannot verify > Verified. Feeds the app's re-inspection queue tab. |
 | `eval/screen_score.py` | Prints the screen-recapture scores for any photos. Use it to calibrate the screen thresholds in config.py. |
 | `eval/` | Evaluation scripts (Step 6): fake generation and metrics on `data/pairs`. |
 

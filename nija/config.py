@@ -46,3 +46,7 @@ T_PARTIAL = 0.40
 # Narrator
 GEMMA_MODEL = "gemma4:e2b"
 GEMMA_TIMEOUT_S = 20
+GEMMA_MAX_TOKENS = 160  # caps note length so verify() stays under 10 s
+
+# Re-inspection queue order (most urgent first)
+QUEUE_PRIORITY = ["Not fixed", "Partial", "Cannot verify", "Verified"]

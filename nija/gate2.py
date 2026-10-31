@@ -45,9 +45,9 @@ def check_fresh(before_path, after_path, before_exif, after_exif, H=None, after_
 
     # 2. Reused photo: same picture as any other photo in data/pairs (skipping the pair under test)?
     known = load_known_hashes()
-    test_pair = _pair_of(hash_before, known)
+    test_pairs = _pairs_of(hash_before, known) | {Path(after_path).resolve().parent.name}
     for rel, info in known.items():
-        if Path(rel).parent.name == test_pair:
+        if Path(rel).parent.name in test_pairs:
             continue
         d = int(hash_after - imagehash.hex_to_hash(info["phash"]))
         if d <= config.DUP_MAX:
@@ -129,12 +129,10 @@ def load_known_hashes():
     return fresh
 
 
-def _pair_of(hash_before, known):
-    """Folder name of the pair whose before.jpg is this before photo, so its own after.jpg is not called 'reused'."""
-    for rel, info in known.items():
-        if rel.endswith("/before.jpg") and hash_before - imagehash.hex_to_hash(info["phash"]) <= config.DUP_MAX:
-            return Path(rel).parent.name
-    return None
+def _pairs_of(hash_before, known):
+    """Folder names of pairs whose before.jpg is this before photo (same complaint), so their own after.jpg is not called 'reused'."""
+    return {Path(rel).parent.name for rel, info in known.items()
+            if rel.endswith("/before.jpg") and hash_before - imagehash.hex_to_hash(info["phash"]) <= config.DUP_MAX}
 
 
 def _corner_shift(H, shape):
