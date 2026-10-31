@@ -331,6 +331,46 @@ KN.update({
     "b_box": "ಸಮಸ್ಯೆ ಪೆಟ್ಟಿಗೆಯೊಳಗೆ ಸುತ್ತಲಿನ ರಸ್ತೆಗೆ ಹೋಲಿಕೆ ಅಂತರ {db} ನಿಂದ {da} ಗೆ ಬದಲಾಗಿದೆ, ಅಂದರೆ ಸಮಸ್ಯೆಯ ನೋಟದ {pct}% ಉಳಿದಿದೆ.",
 })
 
+EN.update({
+    "signin_title": "Sign in (demo)", "signin_intro": "Pick a preset account to open its view. You can switch views later in the header.",
+    "signin_as": "Sign in as {role}", "signin_skip": "Skip sign-in", "signout": "Sign out",
+    "signin_banner": "Demo sign-in: no real authentication, for the hackathon only.", "signed_as": "Signed in as {acct}.",
+})
+KN.update({
+    "signin_title": "ಸೈನ್ ಇನ್ (ಡೆಮೊ)", "signin_intro": "ಅದರ ನೋಟ ತೆರೆಯಲು ಒಂದು ಸಿದ್ಧ ಖಾತೆಯನ್ನು ಆರಿಸಿ. ನಂತರ ಮೇಲಿನ ಪಟ್ಟಿಯಲ್ಲಿ ನೋಟ ಬದಲಾಯಿಸಬಹುದು.",
+    "signin_as": "{role} ಆಗಿ ಸೈನ್ ಇನ್", "signin_skip": "ಸೈನ್ ಇನ್ ಬಿಟ್ಟು ಮುಂದುವರಿಯಿರಿ", "signout": "ಸೈನ್ ಔಟ್",
+    "signin_banner": "ಡೆಮೊ ಸೈನ್ ಇನ್: ನಿಜವಾದ ದೃಢೀಕರಣ ಇಲ್ಲ, ಹ್ಯಾಕಥಾನ್‌ಗೆ ಮಾತ್ರ.", "signed_as": "{acct} ಆಗಿ ಸೈನ್ ಇನ್ ಆಗಿದೆ.",
+})
+
+EN.update({
+    "sum_title": "Auditor summary by GBA corporation", "sum_corp": "Corporation", "sum_reviewed": "Reviewed",
+    "sum_pct": "% Verified", "sum_unassigned": "Unassigned", "sum_claimed": "Claimed fixed", "sum_verified": "Verified by Nija",
+    "sum_chart": "Claimed vs verified", "sum_csv": "Download summary as CSV",
+    "sum_note": "Corporation comes from each pair's label.json (\"corporation\"); pairs without one are Unassigned.",
+    "loc_gmaps": "Open in Google Maps",
+    "tab_roadmap": "Platform roadmap", "rm_title": "From complaint to verified closure",
+    "rm_intake": "Intake channels", "rm_verify": "Nija verification", "rm_outputs": "Outputs",
+    "rm_app": "Mobile app upload", "rm_whatsapp": "WhatsApp", "rm_1533": "1533 call-centre agent upload",
+    "rm_web": "Web upload (this demo)", "rm_gates": "Gate 1 same place + Gate 2 real, fresh photo", "rm_measure": "Measure what is left",
+    "rm_citizen": "Citizen message in Kannada / English with voice", "rm_officer": "Officer re-inspection list",
+    "rm_auditor": "Auditor ward dashboard", "rm_built": "Built", "rm_planned": "Planned",
+    "rm_honest": "Calls and WhatsApp intake are planned integrations, not built.",
+})
+KN.update({
+    "sum_title": "GBA ನಗರ ಪಾಲಿಕೆವಾರು ಲೆಕ್ಕಪರಿಶೋಧಕರ ಸಾರಾಂಶ", "sum_corp": "ನಗರ ಪಾಲಿಕೆ", "sum_reviewed": "ಪರಿಶೀಲಿಸಿದವು",
+    "sum_pct": "% ದೃಢಪಟ್ಟಿದೆ", "sum_unassigned": "ನಿಗದಿಪಡಿಸಿಲ್ಲ", "sum_claimed": "ದುರಸ್ತಿ ಎಂದು ಹೇಳಿದ್ದು", "sum_verified": "ನಿಜ ದೃಢಪಡಿಸಿದ್ದು",
+    "sum_chart": "ಹೇಳಿದ್ದು ಮತ್ತು ದೃಢಪಟ್ಟದ್ದು", "sum_csv": "ಸಾರಾಂಶವನ್ನು CSV ಆಗಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ",
+    "sum_note": "ನಗರ ಪಾಲಿಕೆ ಪ್ರತಿ ಜೋಡಿಯ label.json (\"corporation\") ನಿಂದ ಬರುತ್ತದೆ; ಇಲ್ಲದಿದ್ದರೆ ನಿಗದಿಪಡಿಸಿಲ್ಲ.",
+    "loc_gmaps": "Google Maps ನಲ್ಲಿ ತೆರೆಯಿರಿ",
+    "tab_roadmap": "ವೇದಿಕೆಯ ಮುಂದಿನ ಯೋಜನೆ", "rm_title": "ದೂರಿನಿಂದ ದೃಢಪಟ್ಟ ಮುಕ್ತಾಯದವರೆಗೆ",
+    "rm_intake": "ದೂರು ಬರುವ ಮಾರ್ಗಗಳು", "rm_verify": "ನಿಜ ಪರಿಶೀಲನೆ", "rm_outputs": "ಫಲಿತಾಂಶಗಳು",
+    "rm_app": "ಮೊಬೈಲ್ ಆ್ಯಪ್ ಅಪ್‌ಲೋಡ್", "rm_whatsapp": "WhatsApp", "rm_1533": "1533 ಕರೆ ಕೇಂದ್ರ ಸಿಬ್ಬಂದಿ ಅಪ್‌ಲೋಡ್",
+    "rm_web": "ವೆಬ್ ಅಪ್‌ಲೋಡ್ (ಈ ಡೆಮೊ)", "rm_gates": "ಹಂತ 1 ಒಂದೇ ಸ್ಥಳ + ಹಂತ 2 ನಿಜವಾದ ಹೊಸ ಫೋಟೋ", "rm_measure": "ಉಳಿದ ಸಮಸ್ಯೆಯ ಅಳತೆ",
+    "rm_citizen": "ಧ್ವನಿಯೊಂದಿಗೆ ಕನ್ನಡ / ಇಂಗ್ಲಿಷ್ ನಾಗರಿಕ ಸಂದೇಶ", "rm_officer": "ಅಧಿಕಾರಿಯ ಮರುಪರಿಶೀಲನೆ ಪಟ್ಟಿ",
+    "rm_auditor": "ಲೆಕ್ಕಪರಿಶೋಧಕರ ವಾರ್ಡ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", "rm_built": "ನಿರ್ಮಿಸಲಾಗಿದೆ", "rm_planned": "ಯೋಜಿತ",
+    "rm_honest": "ಕರೆ ಮತ್ತು WhatsApp ಮೂಲಕ ದೂರು ಸ್ವೀಕಾರ ಯೋಜಿತ ಸಂಯೋಜನೆಗಳು, ಇನ್ನೂ ನಿರ್ಮಿಸಿಲ್ಲ.",
+})
+
 LANGS = {"EN": EN, "ಕನ್ನಡ": KN, "KN": KN}
 
 

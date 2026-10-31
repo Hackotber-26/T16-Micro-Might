@@ -31,6 +31,7 @@ ATTACKS = {  # one-click attacks for the demo; all built from the SYNTHETIC samp
 LAB_SAMPLES = {"sample_fixed": "synthetic_after_fixed.jpg", "sample_partial": "synthetic_after_partial.jpg",
                "sample_notfixed": "synthetic_after_notfixed.jpg", "sample_otherplace": "synthetic_after_otherplace.jpg"}
 ROLES = ["citizen", "officer", "auditor"]
+ACCOUNTS = {"citizen@demo": "citizen", "officer@demo": "officer", "auditor@demo": "auditor"}  # demo only, no real authentication
 
 st.set_page_config(page_title="Nija - Proof of Fix", page_icon="🛣️", layout="wide")
 ui.inject_css()
@@ -404,6 +405,40 @@ with st.container(key="nija_header"):
 ui.hero(L("app_title"), L("hero_promise"))
 ui.step_pills([L(f"step{i}") for i in range(1, 6)])
 st.caption(L("tagline"))
+
+
+# Demo sign-in: callbacks run before the next script run, so they may set the header's role widget safely
+def sign_in(account):
+    st.session_state["account"] = account
+    st.session_state["role"] = ACCOUNTS[account]
+
+
+def skip_sign_in():
+    st.session_state["signin_skipped"] = True
+
+
+def sign_out():
+    st.session_state.pop("account", None)
+    st.session_state["signin_skipped"] = False
+
+
+if not st.session_state.get("account") and not st.session_state.get("signin_skipped"):
+    st.subheader(L("signin_title"))
+    st.info(L("signin_banner"))
+    st.write(L("signin_intro"))
+    for col, (account, acct_role) in zip(st.columns(3), ACCOUNTS.items()):
+        with col:
+            ui.card(f"<p style='font-size:1.1rem'><b>{html.escape(L('role_' + acct_role))}</b></p>"
+                    f"<p class='src'>{html.escape(account)}</p>", accent=ui.SAFFRON if acct_role == "citizen" else ui.TEAL)
+            st.button(L("signin_as", role=L("role_" + acct_role)), key=f"signin_{acct_role}", type="primary",
+                      on_click=sign_in, args=(account,), width="stretch")
+    st.button(L("signin_skip"), key="signin_skip", type="tertiary", on_click=skip_sign_in)
+    st.stop()
+
+if st.session_state.get("account"):
+    b1, b2 = st.columns([5, 1], vertical_alignment="center")
+    b1.info(f"{L('signin_banner')} {L('signed_as', acct=st.session_state['account'])}")
+    b2.button(L("signout"), key="signout", on_click=sign_out, width="stretch")
 
 with st.sidebar:
     st.header(L("settings"))
