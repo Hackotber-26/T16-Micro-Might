@@ -1,0 +1,25 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Photos and model weights stay local (keep the folders via .gitkeep)
+data/pairs/*
+data/history/*
+!data/pairs/.gitkeep
+!data/history/.gitkeep
+*.pt
+*.pth
+*.onnx
+*.safetensors
+models/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
