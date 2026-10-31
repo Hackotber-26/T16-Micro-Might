@@ -11,6 +11,7 @@ __pycache__/
 data/pairs/*
 !data/pairs/.gitkeep
 data/known_hashes.json
+data/feedback.json
 eval/results_cache/
 *.pt
 *.pth

@@ -1,16 +1,23 @@
-"""Streamlit UI for Nija in English and Kannada. Tabs: Verify (upload before + after), Geometry lab (what changed, step by step),
-Try to fool Nija (one-click attacks + free upload), Re-inspection queue (all pairs ranked). Run with: python -m streamlit run app.py"""
+"""Streamlit UI for Nija in English and Kannada, with Citizen / Officer / Auditor views. Tabs: Verify, Geometry lab,
+Try to fool Nija, Re-inspection queue, Why Karnataka. Run with: python -m streamlit run app.py"""
 
+import csv
+import html
+import io
 import tempfile
 import threading
 import time
 from pathlib import Path
+from urllib.parse import quote
 
+import cv2
+import numpy as np
+import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-from nija import config, ui, verify, visuals
-from nija.i18n import is_kn, note_kn, reason_text, t as _t, verdict_label
+from nija import config, evidence, ui, verify, visuals
+from nija.i18n import FACTS, is_kn, note_kn, reason_text, t as _t, verdict_label
 from nija.narrate import build_facts, translate_kn, warm_up
 from nija.reinspect import build_queue, list_pairs
 
@@ -23,6 +30,7 @@ ATTACKS = {  # one-click attacks for the demo; all built from the SYNTHETIC samp
 }
 LAB_SAMPLES = {"sample_fixed": "synthetic_after_fixed.jpg", "sample_partial": "synthetic_after_partial.jpg",
                "sample_notfixed": "synthetic_after_notfixed.jpg", "sample_otherplace": "synthetic_after_otherplace.jpg"}
+ROLES = ["citizen", "officer", "auditor"]
 
 st.set_page_config(page_title="Nija - Proof of Fix", page_icon="🛣️", layout="wide")
 ui.inject_css()
@@ -30,6 +38,10 @@ ui.inject_css()
 
 def lang():
     return st.session_state.get("lang") or "EN"
+
+
+def role():
+    return st.session_state.get("role") or "officer"
 
 
 def L(key, **fmt):
@@ -82,64 +94,94 @@ def safe_verify(pair, gemma=None):
             return None, None
 
 
+def with_context(result, pair):
+    """Result JSON plus the extra "context" key (GPS from EXIF, officer-entered corporation and ward). Never inside checks."""
+    ctx = evidence.location_context(pair[0], pair[2], corporation, ward)
+    return {**result, "context": ctx}, ctx
+
+
 def badge(verdict):
     ui.verdict_badge(verdict, verdict_label(verdict, lang()), sub=verdict if is_kn(lang()) else None)
+
+
+def citizen_text(result, ctx):
+    """Citizen message in the chosen language. Kannada: template, or Gemma's translation once it passed the number check."""
+    note = result["note"]
+    if not is_kn(lang()):
+        return note["citizen"], L("src_gemma") if note["source"] == "gemma" else L("src_template"), None
+    store = st.session_state.setdefault("kn_citizen", {})
+    key = f"{ctx}:{note['citizen']}"
+    if key in store:
+        return store[key], L("src_kn_gemma"), None
+    return note_kn(result["verdict"], result["score"], result["checks"])["citizen"], L("src_kn_template"), key
+
+
+def translate_button(result, key, ctx):
+    if key and st.button(L("btn_translate"), key=f"tr_{ctx}"):
+        facts = build_facts(result["verdict"], result["score"], result["checks"])
+        with st.spinner(L("spinner")):
+            kn_text = cached_translation(result["note"]["citizen"], tuple(sorted((k, str(v)) for k, v in facts.items())))
+        if kn_text:
+            st.session_state["kn_citizen"][key] = kn_text
+            st.rerun()
+        else:
+            st.warning(L("translate_fail"))
 
 
 def show_note(result, ctx):
     note = result["note"]
     st.subheader(L("note"))
-    if not is_kn(lang()):
-        st.write(f"**{L('officer')}:** {note['officer']}")
-        st.write(f"**{L('citizen')}:** {note['citizen']}")
-        st.caption(L("written_by", src=L("src_gemma") if note["source"] == "gemma" else L("src_template")))
+    text, src, key = citizen_text(result, ctx)
+    officer = note["officer"] if not is_kn(lang()) else note_kn(result["verdict"], result["score"], result["checks"])["officer"]
+    st.write(f"**{L('officer')}:** {officer}")
+    st.write(f"**{L('citizen')}:** {text}")
+    st.caption(L("written_by", src=src))
+    translate_button(result, key, ctx)
+    if is_kn(lang()):
+        with st.expander(L("officer_en")):
+            st.write(note["officer"])
+            st.write(note["citizen"])
+
+
+def listen(text, fallback, key):
+    components.html(evidence.listen_html(text, "kn-IN" if is_kn(lang()) else "en-IN", fallback,
+                                         {"listen": L("cit_listen"), "no_voice": L("voice_no_voice"),
+                                          "no_speech": L("voice_no_speech")}), height=64)
+
+
+def show_location(result, ctx):
+    g1 = result["checks"]["gate1"]
+    fmt = lambda p: f"{p[0]:.5f}, {p[1]:.5f}" if p else L("loc_none")
+    body = (f"<p><b>{html.escape(L('loc_before'))}:</b> {fmt(ctx['gps_before'])}<br>"
+            f"<b>{html.escape(L('loc_after'))}:</b> {fmt(ctx['gps_after'])}</p>"
+            f"<p>{html.escape(L('loc_dist', m=ctx['distance_m']) if ctx['distance_m'] is not None else L('loc_nodist'))}</p>"
+            f"<p>{html.escape(L('loc_gate1', reason=reason_text(g1['reason'], lang())))}</p>"
+            f"<p class='src'>{html.escape(L('loc_corp'))}: {html.escape(ctx['corporation'] or L('loc_pick'))} · "
+            f"{html.escape(L('loc_ward'))}: {html.escape(ctx['ward'] or L('loc_pick'))} ({html.escape(L('loc_officer_note'))})</p>")
+    ui.card(body, title=L("loc_title"), accent=ui.SAFFRON)
+    pts = [p for p in (ctx["gps_before"], ctx["gps_after"]) if p]
+    if pts:
+        st.map(pd.DataFrame(pts, columns=["lat", "lon"]), zoom=16, size=8)
+        st.caption(L("loc_map_note"))
+
+
+def show_retake_guide(images):
+    if "before_bgr" not in images:
         return
-    kn = note_kn(result["verdict"], result["score"], result["checks"])
-    store = st.session_state.setdefault("kn_citizen", {})
-    key = f"{ctx}:{note['citizen']}"
-    citizen = store.get(key) or kn["citizen"]
-    st.write(f"**{L('officer')}:** {kn['officer']}")
-    st.write(f"**{L('citizen')}:** {citizen}")
-    st.caption(L("written_by", src=L("src_kn_gemma") if key in store else L("src_kn_template")))
-    if key not in store and st.button(L("btn_translate"), key=f"tr_{ctx}"):
-        facts = build_facts(result["verdict"], result["score"], result["checks"])
-        with st.spinner(L("spinner")):
-            kn_text = cached_translation(note["citizen"], tuple(sorted((k, str(v)) for k, v in facts.items())))
-        if kn_text:
-            store[key] = kn_text
-            st.rerun()
-        else:
-            st.warning(L("translate_fail"))
-    with st.expander(L("officer_en")):
-        st.write(note["officer"])
-        st.write(note["citizen"])
+    faded = cv2.addWeighted(images["before_bgr"], 0.45, np.full_like(images["before_bgr"], 255), 0.55, 0)
+    c1, c2 = st.columns(2)
+    c1.image(cv2.cvtColor(faded, cv2.COLOR_BGR2RGB), caption=L("fool_before_cap"), width="stretch")
+    c2.image(cv2.cvtColor(images["after_bgr"], cv2.COLOR_BGR2RGB), caption=L("up_after"), width="stretch")
+    st.markdown(f"{L('off_retake_intro')}\n\n1. {L('off_tip1')}\n2. {L('off_tip2')}\n3. {L('off_tip3')}")
 
 
-def show_result(result, images, ctx):
-    verdict, score = result["verdict"], result["score"]
-    badge(verdict)
-    m1, m2, m3 = st.columns(3)
-    m1.metric(L("m_score"), L("na") if score is None else f"{score:.2f}")
-    residual = result["checks"]["measure"]["residual_area_pct"]
-    m2.metric(L("m_residual"), L("na") if residual is None else f"{residual}%")
-    m3.metric(L("m_time"), f"{result['timings_ms']['total'] / 1000:.1f} s")
-
-    show_note(result, ctx)
-
-    if "after_overlay" in images:
-        c1, c2 = st.columns(2)
-        c1.image(images["before_overlay"], width="stretch", caption=L("ov_before"))
-        c2.image(images["after_overlay"], width="stretch", caption=L("ov_after"))
-
-    show_geometry_compact(result, images)
-
+def show_checks(result, images):
     for name in GATES + ("measure",):
         check = result["checks"][name]
         icon = "" if name == "measure" else ("✅ " if check["passed"] else "❌ ")
         with st.expander(f"{icon}{L(name)}"):
             st.write(reason_text(check.get("reason") or check.get("method", ""), lang()))
             st.json(check)
-
     with st.expander(L("debug_title")):
         if "gate1_matches" in images:
             g1 = result["checks"]["gate1"]
@@ -148,12 +190,69 @@ def show_result(result, images, ctx):
         else:
             st.write(L("debug_none"))
 
+
+def show_metrics(result):
+    score = result["score"]
+    m1, m2, m3 = st.columns(3)
+    m1.metric(L("m_score"), L("na") if score is None else f"{score:.2f}")
+    residual = result["checks"]["measure"]["residual_area_pct"]
+    m2.metric(L("m_residual"), L("na") if residual is None else f"{residual}%")
+    m3.metric(L("m_time"), f"{result['timings_ms']['total'] / 1000:.1f} s")
+
+
+def show_result(result, images, ctx, pair):
+    """Same result, three views: citizen (plain), officer (geometry and checks), auditor (evidence)."""
+    full, context = with_context(result, pair)
+    badge(result["verdict"])
+    if role() == "citizen":
+        text, src, key = citizen_text(result, ctx)
+        ui.card(f"<p style='font-size:1.15rem'>{html.escape(text)}</p><p class='src'>{html.escape(L('written_by', src=src))}</p>",
+                title=L("citizen"), accent=ui.VERDICT_COLOURS[result["verdict"]][0])
+        translate_button(result, key, ctx)
+        listen(f"{verdict_label(result['verdict'], lang())}. {text}", f"{result['verdict']}. {result['note']['citizen']}", ctx)
+        c1, c2 = st.columns(2)
+        c1.link_button(L("cit_whatsapp"), "https://wa.me/?text=" + quote(f"Nija: {verdict_label(result['verdict'], lang())}. {text}"),
+                       width="stretch")
+        if c2.button(L("cit_feedback"), key=f"fb_{ctx}", width="stretch"):
+            evidence.add_feedback(pair[0], result["verdict"], lang())
+            st.success(L("cit_feedback_done"))
+        return
+
+    show_metrics(result)
+    if role() == "auditor":
+        show_location(result, context)
+        st.download_button(L("aud_evidence"), evidence.evidence_zip(result, images, pair, context),
+                           file_name=f"nija_evidence_{evidence.photo_id(pair[0])}.zip", mime="application/zip",
+                           key=f"zip_{ctx}", type="primary")
+        show_checks(result, images)
+        with st.expander(L("raw"), expanded=True):
+            st.json(full)
+        return
+
+    # Officer
+    show_note(result, ctx)
+    if result["verdict"] == "Cannot verify":
+        failed = [result["checks"][g] for g in GATES if not result["checks"][g]["passed"]]
+        why = reason_text(failed[0]["reason"] if failed else result["checks"]["measure"].get("method", ""), lang())
+        ui.card(f"<p>{html.escape(why)}</p>", title=L("off_why"), accent=ui.RED)
+        st.subheader(L("off_retake"))
+        show_retake_guide(images)
+    if "after_overlay" in images:
+        c1, c2 = st.columns(2)
+        c1.image(images["before_overlay"], width="stretch", caption=L("ov_before"))
+        c2.image(images["after_overlay"], width="stretch", caption=L("ov_after"))
+    show_geometry_compact(result, images)
+    show_location(result, context)
+    show_checks(result, images)
+    if result["verdict"] != "Cannot verify":
+        with st.expander(L("off_retake")):
+            show_retake_guide(images)
     with st.expander(L("raw")):
-        st.json(result)
+        st.json(full)
 
 
 def show_geometry_compact(result, images):
-    """Three key geometry pictures and the plain-language bullets, inside every Verify result."""
+    """Three key geometry pictures and the plain-language bullets, inside every officer result."""
     if "after_bgr" not in images:
         return
     st.subheader(L("lab_compact"))
@@ -245,6 +344,41 @@ def show_caught(result):
         st.warning(L("not_caught", verdict=verdict_label(result["verdict"], lang())))
 
 
+def show_why_karnataka():
+    st.subheader(L("why_title"))
+    steps = ["j_report", "j_assign", "j_repair", "j_close", "j_reopen", "j_audit"]
+
+    def flow(hot_cls):
+        nodes = [f"<span class='nija-node {hot_cls if s == 'j_close' else ''}'>{html.escape(L(s))}</span>" for s in steps]
+        return "<div class='nija-flow'>" + "<span class='nija-arrow'>→</span>".join(nodes) + "</div>"
+
+    st.markdown(f"#### {L('why_journey')}")
+    ui.card(flow("hot") + f"<p>{html.escape(L('why_today_line'))}</p>", title=L("why_today"), accent=ui.RED)
+    ui.card(flow("core") + f"<p>{html.escape(L('why_nija_line'))}</p>", title=L("why_nija"), accent=ui.TEAL)
+
+    st.markdown(f"#### {L('why_facts')}")
+    cards = []
+    for en, kn, outlet, url in FACTS:
+        src = (f"<a href='{html.escape(url)}' target='_blank' rel='noopener'>{html.escape(L('why_as_reported', outlet=outlet))}</a>"
+               if url else f"{html.escape(L('why_as_reported', outlet=outlet))} · {html.escape(L('why_no_link'))}")
+        cards.append(f"<div class='nija-card' style='margin:0'><p>{html.escape(kn if is_kn(lang()) else en)}</p>"
+                     f"<p class='src'>{src}</p></div>")
+    st.markdown("<div class='nija-grid'>" + "".join(cards) + "</div>", unsafe_allow_html=True)
+
+    st.markdown(f"#### {L('why_fits')}")
+    node = lambda text, cls="": f"<span class='nija-node {cls}'>{html.escape(text)}</span>"
+    st.markdown(
+        f"<div class='nija-card'><p class='src' style='text-align:center'>{html.escape(L('why_inputs'))}</p>"
+        f"<div class='nija-flow'>{node('Sahaaya')}{node('1533')}{node('Rasthe Gundi Gamana')}</div>"
+        f"<div class='nija-flow'><span class='nija-arrow'>↓</span></div>"
+        f"<div class='nija-flow'>{node('Nija: ' + L('step1') + ' · ' + L('step2') + ' · ' + L('step3'), 'core')}</div>"
+        f"<div class='nija-flow'><span class='nija-arrow'>↓</span></div>"
+        f"<div class='nija-flow'>{node(L('role_citizen'))}{node(L('role_officer'))}{node(L('role_auditor'))}</div>"
+        f"<p class='src' style='text-align:center'>{html.escape(L('why_outputs'))}</p></div>",
+        unsafe_allow_html=True)
+    ui.card(f"<p>{html.escape(L('why_limits_body'))}</p>", title=L("why_limits"), accent=ui.SAFFRON)
+
+
 def both(key):
     """English / Kannada label that never changes, so uploaded files survive a language switch."""
     return f"{_t(key, 'EN')} / {_t(key, 'KN')}"
@@ -260,10 +394,12 @@ def sample_pair(after_file):
 
 
 start_gemma_warm_up()
+st.session_state.setdefault("lang", "EN")
+st.session_state.setdefault("role", "officer")
 with st.container(key="nija_header"):
-    h1, h2 = st.columns([3, 2], vertical_alignment="center")
-    st.session_state.setdefault("lang", "EN")
-    h2.segmented_control("Language", ["EN", "ಕನ್ನಡ"], key="lang", label_visibility="collapsed")
+    h1, h2, h3 = st.columns([2, 3, 2], vertical_alignment="center")
+    h3.segmented_control("Language", ["EN", "ಕನ್ನಡ"], key="lang", label_visibility="collapsed")
+    h2.segmented_control(L("role"), ROLES, key="role", format_func=lambda r: L("role_" + r), label_visibility="collapsed")
     h1.markdown(L("brand"))
 ui.hero(L("app_title"), L("hero_promise"))
 ui.step_pills([L(f"step{i}") for i in range(1, 6)])
@@ -282,8 +418,15 @@ with st.sidebar:
         rw = st.slider(L("roi_w"), 5, 100 - rx, min(50, 100 - rx), key="roi_w")
         rh = st.slider(L("roi_h"), 5, 100 - ry, min(50, 100 - ry), key="roi_h")
         roi = (rx / 100, ry / 100, rw / 100, rh / 100)
+    st.divider()
+    st.subheader(L("loc_title"))
+    corporation = st.selectbox(L("loc_corp"), [None] + evidence.CORPORATIONS, key="corporation",
+                               format_func=lambda c: L("loc_pick") if c is None else c)
+    ward = st.text_input(L("loc_ward"), key="ward")
+    st.caption(L("loc_officer_note"))
 
-tab_verify, tab_lab, tab_fool, tab_queue = st.tabs([L("tab_verify"), L("lab_tab"), L("tab_fool"), L("tab_queue")])
+tab_verify, tab_lab, tab_fool, tab_queue, tab_why = st.tabs(
+    [L("tab_verify"), L("lab_tab"), L("tab_fool"), L("tab_queue"), L("tab_why")])
 
 with tab_verify:
     col_b, col_a = st.columns(2)
@@ -297,9 +440,10 @@ with tab_verify:
         st.session_state["verify_pair"] = upload_pair(before_file, after_file)
         st.session_state["last_pair"] = st.session_state["verify_pair"]
     if st.session_state.get("verify_pair"):
-        result, images = safe_verify(st.session_state["verify_pair"])
+        pair = st.session_state["verify_pair"]
+        result, images = safe_verify(pair)
         if result:
-            show_result(result, images, "verify")
+            show_result(result, images, "verify", pair)
             st.caption(L("honesty"))
 
 with tab_lab:
@@ -308,10 +452,8 @@ with tab_lab:
     pick = st.selectbox(L("lab_source"), options, index=1, format_func=L, key="lab_pick")
     clicked = st.button(L("lab_run"), type="primary", key="lab_run")
     if clicked:
-        if pick == "lab_last":
-            st.session_state["lab_pair"] = st.session_state["last_pair"]
-        else:
-            st.session_state["lab_pair"] = sample_pair(LAB_SAMPLES[pick])
+        st.session_state["lab_pair"] = (st.session_state["last_pair"] if pick == "lab_last"
+                                        else sample_pair(LAB_SAMPLES[pick]))
     if st.session_state.get("lab_pair"):
         result, images = safe_verify(st.session_state["lab_pair"], gemma=False)
         if result:
@@ -328,10 +470,11 @@ with tab_fool:
     attack = st.session_state.get("attack")
     if attack in ATTACKS:
         st.subheader(L("attack", name=L(attack)))
-        result, images = safe_verify(sample_pair(ATTACKS[attack]))
+        pair = sample_pair(ATTACKS[attack])
+        result, images = safe_verify(pair)
         if result:
             show_caught(result)
-            show_result(result, images, "attack")
+            show_result(result, images, "attack", pair)
 
     st.divider()
     st.write(L("free_upload"))
@@ -341,10 +484,11 @@ with tab_fool:
     if st.button(L("btn_try"), disabled=not (fool_before and fool_after), key="btn_try"):
         st.session_state["fool_pair"] = upload_pair(fool_before, fool_after)
     if st.session_state.get("fool_pair"):
-        result, images = safe_verify(st.session_state["fool_pair"])
+        pair = st.session_state["fool_pair"]
+        result, images = safe_verify(pair)
         if result:
             show_caught(result)
-            show_result(result, images, "free")
+            show_result(result, images, "free", pair)
 
 with tab_queue:
     pairs = list_pairs()
@@ -362,15 +506,45 @@ with tab_queue:
                 st.error(L("err_queue", err=type(e).__name__))
                 rows = []
         if rows:
+            flags = evidence.feedback_counts()
+            ids = {p.name: evidence.photo_id((p / "before.jpg").read_bytes()) for p in pairs}
             counts = {v: sum(r["verdict"] == v for r in rows) for v in config.QUEUE_PRIORITY}
             for col, (v, n) in zip(st.columns(len(counts)), counts.items()):
                 col.metric(verdict_label(v, lang()), n)
+            f1, f2 = st.columns(2)
+            show_v = f1.multiselect(L("aud_filter_verdict"), config.QUEUE_PRIORITY, default=config.QUEUE_PRIORITY,
+                                    format_func=lambda v: verdict_label(v, lang()), key="q_verdicts")
+            types = sorted({r["type"] for r in rows})
+            show_t = f2.multiselect(L("aud_filter_type"), types, default=types, format_func=lambda x: L(x) if x else "-",
+                                    key="q_types")
+            rows = [r for r in rows if r["verdict"] in show_v and r["type"] in show_t]
             table = [{L("col_priority"): r["priority"], L("col_pair"): r["pair"],
                       L("col_verdict"): verdict_label(r["verdict"], lang()), L("col_score"): r["score"],
-                      L("col_residual"): r["residual_%"], L("col_why"): reason_text(r["why"], lang()),
-                      L("col_type"): L(r["type"]) if r["type"] else "", L("col_label"): r["label (ground truth)"],
-                      L("col_ms"): r["ms"]} for r in rows]
+                      L("col_residual"): r["residual_%"], L("aud_flag"): ("🚩 " + str(flags[ids[r["pair"]]])) if flags.get(ids[r["pair"]]) else "",
+                      L("col_why"): reason_text(r["why"], lang()), L("col_type"): L(r["type"]) if r["type"] else "",
+                      L("col_label"): r["label (ground truth)"], L("col_ms"): r["ms"]} for r in rows]
             st.dataframe(table, hide_index=True, width="stretch")
+            if table:
+                buf = io.StringIO()
+                w = csv.DictWriter(buf, fieldnames=list(table[0].keys()))
+                w.writeheader()
+                w.writerows(table)
+                st.download_button(L("aud_csv"), buf.getvalue().encode("utf-8-sig"), file_name="nija_queue.csv",
+                                   mime="text/csv", key="q_csv")
+            if role() == "auditor" and rows:
+                st.markdown(f"#### {L('aud_evidence')}")
+                p_name = st.selectbox(L("aud_pick"), [r["pair"] for r in rows], key="aud_pair")
+                if st.button(L("aud_build"), key="aud_build"):
+                    d = config.PAIRS_DIR / p_name
+                    pair = ((d / "before.jpg").read_bytes(), "before.jpg", (d / "after.jpg").read_bytes(), "after.jpg")
+                    result, images = safe_verify(pair, gemma=False)
+                    if result:
+                        _, context = with_context(result, pair)
+                        st.download_button(L("aud_evidence"), evidence.evidence_zip(result, images, pair, context),
+                                           file_name=f"nija_evidence_{p_name}.zip", mime="application/zip", key="aud_zip")
+
+with tab_why:
+    show_why_karnataka()
 
 st.divider()
 st.caption(f"{_t('footer', 'EN')}  \n{_t('footer', 'KN')}")

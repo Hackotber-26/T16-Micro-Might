@@ -1,14 +1,51 @@
-# Nija: 7-minute demo script
+# Nija: 7-minute demo script (v2: Geometry lab, Kannada, roles)
 
 **Before you start:**
-- Open the app (`.\.venv\Scripts\python.exe -m streamlit run app.py`) and press Verify once on the sample pair, so Gemma is warm.
+- Open the app (`.\.venv\Scripts\python.exe -m streamlit run app.py`), role **Officer**, language **EN**.
+- Press Verify once on the sample pair, so Gemma is warm.
 - Have `eval/results.md` open in a second tab.
-- Close everything else that uses the laptop's RAM.
+- If you want the Listen demo in Kannada, check Windows has a Kannada voice. Otherwise it says so and reads in English.
 
-## 1. Problem (45 s)
-- "In Bengaluru a pothole or garbage complaint gets marked *resolved*, often with an 'after' photo. Nobody checks those photos at scale."
-- "A contractor can re-send an old photo, photograph a screen, shoot a different street, or fill half the pothole. All of these get closed as fixed."
-- "We built **Nija** (Kannada for *truth*): a verification layer that checks the closure photo before the complaint is closed."
+| Part | Time | What to show |
+|---|---|---|
+| Problem | 45 s | Hero banner, then the **Why Karnataka** journey row (Close is the weak step) |
+| Live geometry | 2 min | **Geometry lab**, half-fixed sample: 7 stages, drag the slider, read the bullets |
+| Fool Nija | 1 min | Three attack buttons, each caught with a reason |
+| Kannada + voice | 45 s | Switch to ಕನ್ನಡ, Citizen role, Listen, Translate with Gemma, WhatsApp |
+| Evaluation | 60 s | Numbers from `eval/results.md` only |
+| Why Karnataka | 60 s | Fact cards with sources, where Nija fits, limits card |
+
+### Problem (45 s)
+- "In Bengaluru a pothole complaint gets marked *resolved*. Nobody checks the closure photo at scale."
+- Open **Why Karnataka**: "Every complaint goes Report, Assign, Repair, **Close**. Close is where a ticket can be marked resolved with no photo, or a photo nobody checks."
+- "We built **Nija** (Kannada for *truth*): it checks the closure photo before the complaint is closed."
+
+### Live geometry (2 min)
+- **Geometry lab**, keep "Sample: half fixed", press **Run the geometry lab**. Narrate as the stages appear:
+  - "Keypoints, then matches. Green lines agree on one camera transform, which proves it is the same place."
+  - "This yellow box is where the old photo's frame lands. Nija says in words how the camera moved."
+  - Drag the **slider**: "Before and after, lined up."
+  - "The heatmap shows what changed. The contours show the defect then (green) and what is left (red)."
+- Read the bullet "Defect area went from 92,267 px to 50,784 px (45% smaller)". Then: "So the verdict is **Partial**, from a measurement, not an AI opinion."
+
+### Fool Nija (1 min)
+- **Try to fool Nija**: click the three attacks. Reused photo is caught by Gate 2, the screen photo by both gates, the different place by Gate 1.
+- Invite a judge to upload anything.
+
+### Kannada and voice (45 s)
+- Switch to **ಕನ್ನಡ** and role **Citizen**, then open **Verify** with the partial pair. The verdict reads **ಭಾಗಶಃ ದುರಸ್ತಿ**.
+- Press **ಕೇಳಿ (Listen)**, then **Translate with Gemma**. "Gemma's Kannada is shown only if every number matches our measurement."
+- Show the WhatsApp share button and "Still not fixed? Tell us". The flag then appears in the auditor queue.
+
+### Evaluation (60 s): see section 4 below.
+### Why Karnataka (60 s)
+- Read 2 or 3 fact cards and say "as reported by" plus the outlet.
+- Show **Where Nija fits** (between Sahaaya / 1533 / Rasthe Gundi Gamana and the people who use the result).
+- End on the **Limits** card: no claims about quality, durability or depth.
+
+---
+
+## Older script (v1), kept for reference
 
 ## 2. Architecture (60 s)
 Show the diagram in the README.

@@ -51,13 +51,27 @@ python -m venv .venv                                             # first time on
 Without Ollama, everything still works: notes fall back to a fixed template (shown as "Written by: fixed template").
 
 ## The app
+English and Kannada (toggle in the header), works on phones (390 px) and desktop. Fonts are bundled in `static/fonts`
+(Plus Jakarta Sans, Inter, Noto Sans Kannada, all SIL Open Font Licence), so nothing loads from the internet.
+
 | Tab | What it does |
 |---|---|
-| **Verify** | Upload a before and an after photo, then press Verify. Shows the verdict badge, score, residual %, time, the Gemma note, defect overlays, ✅/❌ per gate, Gate 1 match lines and the raw JSON. |
+| **Verify** | Upload a before and an after photo, then press Verify. What you see depends on the role (below). |
+| **Geometry lab** | Seven live steps that show what changed: keypoints, matches, homography box, before/after slider, difference heatmap, defect contours, residual bars, plus plain-language bullets built from the real numbers. |
 | **Try to fool Nija** | One-click attacks (old photo reused, photo of a screen, different place) plus free upload. Shows which gate caught the attack and why. |
-| **Re-inspection queue** | Every pair in `data/pairs`, ranked most doubtful first. |
+| **Re-inspection queue** | Every pair in `data/pairs`, ranked most doubtful first, with verdict/type filters, citizen 🚩 flags, CSV export and (auditor) a per-pair evidence pack. |
+| **Why Karnataka** | Complaint journey today vs with Nija, sourced fact cards ("as reported by ..."), where Nija fits, and what Nija does not prove. |
 
-Sidebar settings: pothole/garbage, Gemma notes on/off, and a manual defect box (4 sliders) for when auto-detect picks the wrong area.
+| Role (header) | Verify result shows |
+|---|---|
+| **Citizen** | Big verdict, the citizen message in the chosen language, a Listen button (browser speech, kn-IN / en-IN), Share on WhatsApp, and "Still not fixed? Tell us" (saved to `data/feedback.json`, shown as a flag in the queue). |
+| **Officer** | Gemma note, geometry at a glance, location card (EXIF GPS, distance, Gate 1 reason, map when online), all checks, and a retake guide (faded before photo plus 3 tips). For Cannot verify, the reason comes first. |
+| **Auditor** | Metrics, location card, evidence pack ZIP (photos, overlays, result JSON with `context`, timestamp), checks and the full JSON. |
+
+Sidebar settings: pothole/garbage, Gemma notes on/off, a manual defect box (4 sliders), and the GBA corporation / ward
+(entered by the officer, **not verified**). These go into an extra `"context"` key of the result JSON, never into `checks`.
+Kannada citizen messages use a Kannada template; "Translate with Gemma" shows Gemma's Kannada only if every number in it matches the measurements.
+Kannada text is machine drafted: have a Kannada speaker review it before real use.
 
 `samples/` holds **SYNTHETIC** drawn images (road + pothole) so the demo runs before real photos exist. They are not real data.
 
@@ -87,6 +101,10 @@ Sidebar settings: pothole/garbage, Gemma notes on/off, and a manual defect box (
 | `nija/measure.py` | Warps before into the after frame, finds the defect (dark+rough blob / garbage clutter / manual box) and counts how much is still there. Also reports edge-density change and a seam cue. |
 | `nija/verdict.py` | Turns checks into a score and one of 4 verdicts. A failed gate gives Cannot verify with no score. |
 | `nija/narrate.py` | Gemma 4 (`gemma4:e2b`, local, text only, temperature 0) writes the officer note and citizen message from the numbers. Falls back to a template if Ollama is down or slow, or if Gemma invents a number. |
+| `nija/ui.py` | Design system: bundled fonts, Karnataka palette (teal, saffron, red, cream), cards, 44 px tap targets, mobile layout. Helpers like `hero()` and `verdict_badge()`. |
+| `nija/visuals.py` | Geometry Lab pictures (keypoints, homography box, slider, heatmap, contours, residual bars) and bullets, all from `verify(debug=True)` intermediates. |
+| `nija/i18n.py` | English and Kannada text, verdict labels, Kannada versions of gate reasons and template notes, and the sourced fact cards. |
+| `nija/evidence.py` | Location context from EXIF, the evidence pack ZIP, citizen feedback storage and the browser Listen button. |
 | `nija/reinspect.py` | Runs `verify()` on every pair in `data/pairs` and ranks them Not fixed > Partial > Cannot verify > Verified. Feeds the queue tab. |
 | `eval/make_fakes.py` | Builds SYNTHETIC fake closures from your real pairs (reused photo, photo of a screen, different place) into `data/pairs_fake/`. |
 | `eval/run_eval.py` | Confusion matrix, precision/recall at catching bad closures, a Gemma-only yes/no baseline and seconds per pair. Writes `eval/results.md` + `.csv`. |

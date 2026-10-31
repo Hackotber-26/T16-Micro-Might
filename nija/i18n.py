@@ -210,6 +210,116 @@ KN = {
     "hw_sentence": "ದುರಸ್ತಿ ನಂತರದ ಫೋಟೋದಲ್ಲಿ ದೃಶ್ಯ {shift}, {turn}, {size}.",
 }
 
+EN.update({
+    # Roles
+    "role": "View as", "role_citizen": "Citizen", "role_officer": "Officer", "role_auditor": "Auditor",
+    # Location
+    "loc_title": "Location", "loc_before": "Before photo GPS", "loc_after": "After photo GPS", "loc_none": "not in photo",
+    "loc_dist": "Distance between the two photos: {m} m", "loc_nodist": "Distance unknown: GPS missing in at least one photo.",
+    "loc_gate1": "Gate 1 says: {reason}",
+    "loc_map_note": "Map tiles need internet. Offline, use the coordinates above.",
+    "loc_corp": "GBA corporation", "loc_ward": "Ward name", "loc_officer_note": "Entered by officer, not verified.",
+    "loc_pick": "(not set)",
+    # Citizen view
+    "cit_listen": "Listen", "cit_whatsapp": "Share on WhatsApp", "cit_feedback": "Still not fixed? Tell us",
+    "cit_feedback_done": "Thank you. Your report is saved on this device and shows as a flag in the auditor queue.",
+    "voice_no_voice": "No voice for this language is installed, reading in English.",
+    "voice_no_speech": "This browser cannot read aloud.",
+    # Officer view
+    "off_retake": "Retake guide", "off_retake_intro": "Hold the phone so the faded before photo lines up with what you see.",
+    "off_tip1": "Same angle as the before photo.", "off_tip2": "Same distance, about 2 to 3 metres.",
+    "off_tip3": "Keep road edges, kerbs or poles in the frame.",
+    "off_why": "Why Nija could not verify",
+    # Auditor view
+    "aud_evidence": "Download evidence pack (ZIP)", "aud_csv": "Download queue as CSV",
+    "aud_filter_verdict": "Show verdicts", "aud_filter_type": "Show types", "aud_flag": "Citizen flags",
+    "aud_pick": "Evidence pack for pair", "aud_build": "Build evidence pack",
+    # Why Karnataka tab
+    "tab_why": "Why Karnataka",
+    "why_title": "Why this matters in Karnataka",
+    "why_journey": "A complaint's journey", "why_today": "Today", "why_nija": "With Nija",
+    "j_report": "Report", "j_assign": "Assign", "j_repair": "Repair", "j_close": "Close", "j_reopen": "Reopen", "j_audit": "Audit",
+    "why_today_line": "At Close, a ticket can be marked resolved with no photo, or a photo nobody checks.",
+    "why_nija_line": "At Close, Nija compares the photos: verified repairs close, doubtful ones go to re-inspection.",
+    "why_facts": "What has been reported", "why_as_reported": "as reported by {outlet}",
+    "why_no_link": "source link to be added (we could not find the original article)",
+    "why_fits": "Where Nija fits", "why_inputs": "Existing complaint channels", "why_outputs": "Who uses the result",
+    "why_limits": "What Nija does not prove",
+    "why_limits_body": "Nija checks that the photo shows the same place, is a fresh photo, and that the visible defect area shrank. "
+                       "It does not prove repair quality, how long the repair will last, or depth (depth is not measured). "
+                       "The test set is small and self-made. In the systems we looked at, we found no deployed system "
+                       "that does this check at closure.",
+})
+
+KN.update({
+    "role": "ಯಾರಾಗಿ ನೋಡುವುದು", "role_citizen": "ನಾಗರಿಕ", "role_officer": "ಅಧಿಕಾರಿ", "role_auditor": "ಲೆಕ್ಕಪರಿಶೋಧಕ",
+    "loc_title": "ಸ್ಥಳ", "loc_before": "ಮೊದಲ ಫೋಟೋದ GPS", "loc_after": "ನಂತರದ ಫೋಟೋದ GPS", "loc_none": "ಫೋಟೋದಲ್ಲಿ ಇಲ್ಲ",
+    "loc_dist": "ಎರಡು ಫೋಟೋಗಳ ನಡುವಿನ ದೂರ: {m} ಮೀ", "loc_nodist": "ದೂರ ತಿಳಿದಿಲ್ಲ: ಒಂದಾದರೂ ಫೋಟೋದಲ್ಲಿ GPS ಇಲ್ಲ.",
+    "loc_gate1": "ಹಂತ 1 ಹೇಳುವುದು: {reason}",
+    "loc_map_note": "ನಕ್ಷೆಗೆ ಇಂಟರ್ನೆಟ್ ಬೇಕು. ಇಂಟರ್ನೆಟ್ ಇಲ್ಲದಿದ್ದರೆ ಮೇಲಿನ ನಿರ್ದೇಶಾಂಕಗಳನ್ನು ಬಳಸಿ.",
+    "loc_corp": "GBA ನಗರ ಪಾಲಿಕೆ", "loc_ward": "ವಾರ್ಡ್ ಹೆಸರು", "loc_officer_note": "ಅಧಿಕಾರಿ ನಮೂದಿಸಿದ್ದು, ಪರಿಶೀಲಿಸಿಲ್ಲ.",
+    "loc_pick": "(ಆಯ್ಕೆ ಮಾಡಿಲ್ಲ)",
+    "cit_listen": "ಕೇಳಿ", "cit_whatsapp": "WhatsApp ನಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಿ", "cit_feedback": "ಇನ್ನೂ ದುರಸ್ತಿ ಆಗಿಲ್ಲವೇ? ತಿಳಿಸಿ",
+    "cit_feedback_done": "ಧನ್ಯವಾದಗಳು. ನಿಮ್ಮ ವರದಿ ಈ ಸಾಧನದಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ ಮತ್ತು ಲೆಕ್ಕಪರಿಶೋಧಕರ ಪಟ್ಟಿಯಲ್ಲಿ ಗುರುತಾಗಿ ಕಾಣುತ್ತದೆ.",
+    "voice_no_voice": "ಈ ಭಾಷೆಯ ಧ್ವನಿ ಸ್ಥಾಪಿಸಿಲ್ಲ, ಇಂಗ್ಲಿಷ್‌ನಲ್ಲಿ ಓದಲಾಗುತ್ತಿದೆ.",
+    "voice_no_speech": "ಈ ಬ್ರೌಸರ್ ಜೋರಾಗಿ ಓದಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+    "off_retake": "ಮತ್ತೆ ಫೋಟೋ ತೆಗೆಯುವ ಮಾರ್ಗದರ್ಶಿ", "off_retake_intro": "ಮಸುಕಾದ ಮೊದಲ ಫೋಟೋ ನೀವು ನೋಡುವ ದೃಶ್ಯಕ್ಕೆ ಹೊಂದುವಂತೆ ಫೋನ್ ಹಿಡಿಯಿರಿ.",
+    "off_tip1": "ಮೊದಲ ಫೋಟೋದ ಅದೇ ಕೋನ.", "off_tip2": "ಅದೇ ದೂರ, ಸುಮಾರು 2 ರಿಂದ 3 ಮೀಟರ್.",
+    "off_tip3": "ರಸ್ತೆ ಅಂಚು, ಕರ್ಬ್ ಅಥವಾ ಕಂಬಗಳು ಚೌಕಟ್ಟಿನಲ್ಲಿ ಇರಲಿ.",
+    "off_why": "ನಿಜ ಏಕೆ ಪರಿಶೀಲಿಸಲು ಆಗಲಿಲ್ಲ",
+    "aud_evidence": "ಸಾಕ್ಷ್ಯ ಪ್ಯಾಕ್ ಡೌನ್‌ಲೋಡ್ (ZIP)", "aud_csv": "ಪಟ್ಟಿಯನ್ನು CSV ಆಗಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ",
+    "aud_filter_verdict": "ತೀರ್ಮಾನಗಳು", "aud_filter_type": "ಪ್ರಕಾರಗಳು", "aud_flag": "ನಾಗರಿಕರ ಗುರುತುಗಳು",
+    "aud_pick": "ಸಾಕ್ಷ್ಯ ಪ್ಯಾಕ್‌ಗೆ ಜೋಡಿ", "aud_build": "ಸಾಕ್ಷ್ಯ ಪ್ಯಾಕ್ ರಚಿಸಿ",
+    "tab_why": "ಕರ್ನಾಟಕಕ್ಕೆ ಏಕೆ",
+    "why_title": "ಕರ್ನಾಟಕದಲ್ಲಿ ಇದು ಏಕೆ ಮುಖ್ಯ",
+    "why_journey": "ಒಂದು ದೂರಿನ ಪ್ರಯಾಣ", "why_today": "ಇಂದು", "why_nija": "ನಿಜ ಜೊತೆ",
+    "j_report": "ದೂರು", "j_assign": "ಹಂಚಿಕೆ", "j_repair": "ದುರಸ್ತಿ", "j_close": "ಮುಕ್ತಾಯ", "j_reopen": "ಮರು ತೆರೆಯುವಿಕೆ",
+    "j_audit": "ಲೆಕ್ಕಪರಿಶೋಧನೆ",
+    "why_today_line": "ಮುಕ್ತಾಯದ ಹಂತದಲ್ಲಿ, ಫೋಟೋ ಇಲ್ಲದೆ ಅಥವಾ ಯಾರೂ ಪರಿಶೀಲಿಸದ ಫೋಟೋದೊಂದಿಗೆ ದೂರನ್ನು ಪರಿಹರಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಬಹುದು.",
+    "why_nija_line": "ಮುಕ್ತಾಯದ ಹಂತದಲ್ಲಿ ನಿಜ ಫೋಟೋಗಳನ್ನು ಹೋಲಿಸುತ್ತದೆ: ದೃಢಪಟ್ಟ ದುರಸ್ತಿ ಮುಕ್ತಾಯ, ಸಂಶಯಾಸ್ಪದವು ಮರುಪರಿಶೀಲನೆಗೆ.",
+    "why_facts": "ವರದಿಯಾಗಿರುವುದು", "why_as_reported": "{outlet} ವರದಿ ಪ್ರಕಾರ",
+    "why_no_link": "ಮೂಲ ಲಿಂಕ್ ಸೇರಿಸಬೇಕಿದೆ (ಮೂಲ ಲೇಖನ ನಮಗೆ ಸಿಗಲಿಲ್ಲ)",
+    "why_fits": "ನಿಜ ಎಲ್ಲಿ ಸೇರುತ್ತದೆ", "why_inputs": "ಈಗಿರುವ ದೂರು ಮಾರ್ಗಗಳು", "why_outputs": "ಫಲಿತಾಂಶ ಬಳಸುವವರು",
+    "why_limits": "ನಿಜ ಏನನ್ನು ಸಾಬೀತುಪಡಿಸುವುದಿಲ್ಲ",
+    "why_limits_body": "ಫೋಟೋ ಅದೇ ಸ್ಥಳದ್ದು, ಹೊಸ ಫೋಟೋ, ಮತ್ತು ಕಾಣುವ ಸಮಸ್ಯೆ ಪ್ರದೇಶ ಕಡಿಮೆಯಾಗಿದೆ ಎಂದು ನಿಜ ಪರಿಶೀಲಿಸುತ್ತದೆ. "
+                       "ದುರಸ್ತಿಯ ಗುಣಮಟ್ಟ, ಎಷ್ಟು ಕಾಲ ಉಳಿಯುತ್ತದೆ, ಅಥವಾ ಆಳವನ್ನು (ಆಳ ಅಳೆಯುವುದಿಲ್ಲ) ಇದು ಸಾಬೀತುಪಡಿಸುವುದಿಲ್ಲ. "
+                       "ಪರೀಕ್ಷಾ ಸಂಗ್ರಹ ಚಿಕ್ಕದು ಮತ್ತು ನಾವೇ ತಯಾರಿಸಿದ್ದು. ನಾವು ನೋಡಿದ ವ್ಯವಸ್ಥೆಗಳಲ್ಲಿ, ಮುಕ್ತಾಯದ ಹಂತದಲ್ಲಿ "
+                       "ಈ ಪರಿಶೀಲನೆ ಮಾಡುವ ಬಳಕೆಯಲ್ಲಿರುವ ವ್ಯವಸ್ಥೆ ನಮಗೆ ಸಿಗಲಿಲ್ಲ.",
+})
+
+# Fact cards for the Why Karnataka tab: (English, Kannada, outlet, url or None). Links checked on 31 Oct 2026.
+FACTS = [
+    ("BBMP logged 2.37 lakh complaints from Jan 2023 to Sep 2024. Many citizens say tickets are closed without the problem being fixed.",
+     "ಜನವರಿ 2023 ರಿಂದ ಸೆಪ್ಟೆಂಬರ್ 2024 ರವರೆಗೆ BBMP ಗೆ 2.37 ಲಕ್ಷ ದೂರುಗಳು ಬಂದಿವೆ. ಸಮಸ್ಯೆ ಸರಿಪಡಿಸದೆ ದೂರು ಮುಚ್ಚಲಾಗುತ್ತದೆ ಎಂದು ಅನೇಕ ನಾಗರಿಕರು ಹೇಳುತ್ತಾರೆ.",
+     "Deccan Herald", "https://www.deccanherald.com/amp/story/india%2Fkarnataka%2Fbengaluru%2Fbbmp-lavishes-more-funds-on-streetlights-but-complaints-surge-3180698"),
+    ("A Rajajinagar resident filed 21 complaints over 83 days, then paid about Rs 10,500 to fix the road himself.",
+     "ರಾಜಾಜಿನಗರದ ನಿವಾಸಿಯೊಬ್ಬರು 83 ದಿನಗಳಲ್ಲಿ 21 ದೂರು ನೀಡಿ, ನಂತರ ಸುಮಾರು 10,500 ರೂ. ಖರ್ಚು ಮಾಡಿ ತಾವೇ ರಸ್ತೆ ಸರಿಪಡಿಸಿದರು.",
+     "Deccan Herald", None),
+    ("The Lokayukta found Rs 118.26 crore paid for works in RR Nagar; only 2 of 114 works were executed properly.",
+     "RR ನಗರದ ಕಾಮಗಾರಿಗಳಿಗೆ 118.26 ಕೋಟಿ ರೂ. ಪಾವತಿಸಲಾಗಿದೆ; 114 ಕಾಮಗಾರಿಗಳಲ್ಲಿ 2 ಮಾತ್ರ ಸರಿಯಾಗಿ ನಡೆದಿವೆ ಎಂದು ಲೋಕಾಯುಕ್ತ ಕಂಡುಕೊಂಡಿದೆ.",
+     "Deccan Herald, 2022", "https://www.deccanherald.com/india/karnataka/bengaluru/lokayukta-unearths-a-rs-11826-crore-scam-in-bbmp-1079580.html"),
+    ("On 14 Aug 2026 the Karnataka High Court asked the GBA for a detailed affidavit on preventing and repairing potholes.",
+     "14 ಆಗಸ್ಟ್ 2026 ರಂದು ಕರ್ನಾಟಕ ಹೈಕೋರ್ಟ್ ಗುಂಡಿ ತಡೆ ಮತ್ತು ದುರಸ್ತಿ ಬಗ್ಗೆ ವಿವರವಾದ ಪ್ರಮಾಣಪತ್ರ ಸಲ್ಲಿಸಲು GBA ಗೆ ಸೂಚಿಸಿತು.",
+     "LiveLaw", "https://www.livelaw.in/high-court/karnataka-high-court/karnataka-high-court-pothole-crisis-bbmp-claims-potholes-545776"),
+    ("Earlier, the High Court asked NHAI to inspect pothole repair work commissioned by BBMP.",
+     "ಹಿಂದೆ, BBMP ಮಾಡಿಸಿದ ಗುಂಡಿ ದುರಸ್ತಿ ಕೆಲಸವನ್ನು ಪರಿಶೀಲಿಸಲು ಹೈಕೋರ್ಟ್ NHAI ಗೆ ಸೂಚಿಸಿತ್ತು.",
+     "LiveLaw", "https://livelaw.in/news-updates/karnataka-high-court-potholes-bengaluru-bbmp-nhai-213047"),
+    ("9,438 people died in pothole-related crashes in India from 2020 to 2024 (MoRTH reply in the Lok Sabha, Feb 2026).",
+     "2020 ರಿಂದ 2024 ರವರೆಗೆ ಭಾರತದಲ್ಲಿ ಗುಂಡಿ ಸಂಬಂಧಿತ ಅಪಘಾತಗಳಲ್ಲಿ 9,438 ಜನರು ಮೃತಪಟ್ಟಿದ್ದಾರೆ (ಲೋಕಸಭೆಯಲ್ಲಿ MoRTH ಉತ್ತರ, ಫೆಬ್ರವರಿ 2026).",
+     "Siasat", "https://www.siasat.com/pothole-related-road-deaths-surge-53-in-5-yrs-9438-killed-nationwide-3348935/"),
+    ("Bengaluru recorded the most deaths due to civic negligence of any Indian city for the sixth year running: 17 in 2024 (NCRB).",
+     "ನಾಗರಿಕ ಸಂಸ್ಥೆಗಳ ನಿರ್ಲಕ್ಷ್ಯದಿಂದ ಸಾವುಗಳಲ್ಲಿ ಬೆಂಗಳೂರು ಸತತ ಆರನೇ ವರ್ಷ ಮೊದಲ ಸ್ಥಾನದಲ್ಲಿದೆ: 2024 ರಲ್ಲಿ 17 (NCRB).",
+     "ThePrint", "https://theprint.in/india/a-pothole-death-ignites-public-anger-against-shivakumar-govt-minister-santosh-lads-remarks-fuel-bonfire/3014128/"),
+    ("8,046 of 14,795 identified potholes in Bengaluru were still unrepaired in September 2025.",
+     "ಸೆಪ್ಟೆಂಬರ್ 2025 ರಲ್ಲಿ ಬೆಂಗಳೂರಿನಲ್ಲಿ ಗುರುತಿಸಿದ 14,795 ಗುಂಡಿಗಳಲ್ಲಿ 8,046 ಇನ್ನೂ ದುರಸ್ತಿಯಾಗಿರಲಿಲ್ಲ.",
+     "ETV Bharat", "https://www.etvbharat.com/en/!state/fix-potholes-in-bengaluru-by-oct-31-else-engineers-will-face-action-cm-siddaramaiah-enn25092101505"),
+    ("The Kannada Language Comprehensive Development Act, 2022 requires Kannada in state administration; its amendment took effect on 12 March 2024. "
+     "We could not confirm the exact clause on digital services, so check the Act before quoting it.",
+     "ಕನ್ನಡ ಭಾಷಾ ಸಮಗ್ರ ಅಭಿವೃದ್ಧಿ ಅಧಿನಿಯಮ, 2022 ರಾಜ್ಯ ಆಡಳಿತದಲ್ಲಿ ಕನ್ನಡ ಬಳಕೆಯನ್ನು ಕಡ್ಡಾಯಗೊಳಿಸುತ್ತದೆ; ಅದರ ತಿದ್ದುಪಡಿ 12 ಮಾರ್ಚ್ 2024 ರಿಂದ ಜಾರಿಯಲ್ಲಿದೆ. "
+     "ಡಿಜಿಟಲ್ ಸೇವೆಗಳ ನಿಖರ ಷರತ್ತನ್ನು ನಾವು ದೃಢಪಡಿಸಿಲ್ಲ.",
+     "India Code (the Act)", "https://www.indiacode.nic.in/bitstream/123456789/19592/1/13of2023%28e%29_k_%26_c.pdf"),
+]
+
 LANGS = {"EN": EN, "ಕನ್ನಡ": KN, "KN": KN}
 
 

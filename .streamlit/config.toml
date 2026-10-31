@@ -1,14 +1,15 @@
-# Keeps the demo fully offline (no usage stats) and matches the Nija design system in nija/ui.py
+# Keeps the demo fully offline (no usage stats; fonts served from ./static) and matches the design system in nija/ui.py
 [browser]
 gatherUsageStats = false
 
 [server]
 headless = false
 maxUploadSize = 50
+enableStaticServing = true
 
 [theme]
 base = "light"
-primaryColor = "#0F5C5C"
-backgroundColor = "#FFF8E7"
+primaryColor = "#0B4F4A"
+backgroundColor = "#FBF6EA"
 secondaryBackgroundColor = "#FFFFFF"
-textColor = "#1E2623"
+textColor = "#14201D"
