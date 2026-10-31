@@ -1,0 +1,7 @@
+# Keeps the demo fully offline: no usage stats sent, no browser auto-open surprises
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = false
+maxUploadSize = 50

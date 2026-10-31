@@ -9,7 +9,7 @@ from . import config
 SYSTEM_PROMPT = (
     "You write civic repair review notes. Use ONLY the numbers given. Do not change or question the verdict. "
     "Return JSON {officer, citizen}. Officer: 2 sentences, factual. Citizen: 2 simple sentences. "
-    "The officer note states the verdict, the key measurement and the recommended action. "
+    "The officer note states the verdict, the reason_for_verdict (in your own words) and the recommended action. "
     "The citizen message is written TO the resident who reported the problem: what the photos showed and what happens "
     "next, friendly plain English, no technical terms, no numbers."
 )
@@ -63,18 +63,23 @@ def warm_up():
 def build_facts(verdict, score, checks):
     """Plain-language facts for Gemma: only measured values plus the fixed action for this verdict."""
     g1, g2, m = checks["gate1"], checks["gate2"], checks["measure"]
+    if not g1["passed"]:
+        reason = f"same-place check failed: {g1['reason']}"
+    elif not g2["passed"]:
+        reason = f"real-and-fresh photo check failed: {g2['reason']}"
+    elif score is None:
+        reason = m.get("method", "the repair area could not be measured")
+    else:
+        reason = f"{m.get('residual_area_pct')}% of the original {m.get('defect_type')} area is still present"
     facts = {
         "verdict": verdict,
+        "reason_for_verdict": reason,
         "recommended_action": ACTIONS[verdict],
-        "same_place_check": ("passed" if g1["passed"] else "failed") + f": {g1['reason']}",
-        "real_fresh_photo_check": ("passed" if g2["passed"] else "failed") + f": {g2['reason']}",
+        "same_place_check": "passed" if g1["passed"] else "failed",
+        "real_fresh_photo_check": "passed" if g2["passed"] else "failed",
     }
     if score is not None:
         facts["fix_score_0_to_1"] = score
-        facts["defect_type"] = m.get("defect_type")
-        facts["defect_area_still_present_pct"] = m.get("residual_area_pct")
-    elif m.get("method", "").startswith("no defect"):
-        facts["measurement"] = m["method"]
     return facts
 
 
