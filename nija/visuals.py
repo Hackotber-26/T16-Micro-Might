@@ -8,6 +8,8 @@ import math
 import cv2
 import numpy as np
 
+from .i18n import reason_text, t
+
 YELLOW_BGR, RED_BGR, GREEN_BGR, TEAL_BGR = (14, 194, 255), (47, 47, 211), (62, 142, 30), (92, 92, 15)
 
 
@@ -87,19 +89,20 @@ def describe_homography(H, before_shape):
     return {"dx": round(dx), "dy": round(dy), "rotation_deg": round(rot, 1), "scale": round(scale, 3)}
 
 
-def homography_words(d):
+def homography_words(d, lang="EN"):
     if d is None:
-        return "No geometric transform: the photos did not match as one place."
+        return t("hw_none", lang)
     parts = []
     if abs(d["dx"]) >= 3:
-        parts.append(f"{abs(d['dx'])} px {'right' if d['dx'] > 0 else 'left'}")
+        parts.append(t("hw_right" if d["dx"] > 0 else "hw_left", lang, n=abs(d["dx"])))
     if abs(d["dy"]) >= 3:
-        parts.append(f"{abs(d['dy'])} px {'down' if d['dy'] > 0 else 'up'}")
-    shift = "shifted " + " and ".join(parts) if parts else "in the same position"
+        parts.append(t("hw_down" if d["dy"] > 0 else "hw_up", lang, n=abs(d["dy"])))
+    shift = t("hw_shift", lang, parts=t("hw_and", lang).join(parts)) if parts else t("hw_same_pos", lang)
     rot = abs(d["rotation_deg"])
-    turn = "not turned" if rot < 0.3 else f"turned {rot} degrees {'clockwise' if d['rotation_deg'] > 0 else 'anticlockwise'}"
-    size = "the same size" if abs(d["scale"] - 1) < 0.02 else f"{d['scale']:.2f}x the size"
-    return f"In the after photo the scene is {shift}, {turn}, at {size}."
+    turn = t("hw_noturn", lang) if rot < 0.3 else t("hw_turn", lang, deg=rot,
+                                                      dir=t("hw_cw" if d["rotation_deg"] > 0 else "hw_acw", lang))
+    size = t("hw_same_size", lang) if abs(d["scale"] - 1) < 0.02 else t("hw_size", lang, s=f"{d['scale']:.2f}")
+    return t("hw_sentence", lang, shift=shift, turn=turn, size=size)
 
 
 # Stage 4
@@ -167,7 +170,7 @@ def contours_image(images, measure):
 
 
 # Stage 7
-def residual_bars_html(measure):
+def residual_bars_html(measure, lang="EN"):
     b, a = measure.get("before_defect_px") or 0, measure.get("after_defect_px") or 0
     if not b:
         return None
@@ -179,35 +182,35 @@ def residual_bars_html(measure):
                 f"<span>{html.escape(label)}</span><span>{html.escape(value)}</span></div>"
                 f"<div style='background:#EFE6CF;border-radius:999px;height:18px'><div style='width:{width:.1f}%;height:18px;"
                 f"border-radius:999px;background:{colour}'></div></div></div>")
-    rows = [bar("Defect area before", f"{b:,} px", 100, "#1E8E3E"),
-            bar("Defect area after", f"{a:,} px ({pct_a:.0f}%)", pct_a, "#D32F2F")]
+    rows = [bar(t("bar_before", lang), f"{b:,} px", 100, "#1E8E3E"),
+            bar(t("bar_after", lang), f"{a:,} px ({pct_a:.0f}%)", pct_a, "#D32F2F")]
     if edge is not None:
-        rows.append(bar("Edge density after vs before", f"{edge:.2f}x", min(100.0, 100 * edge), "#0F5C5C"))
+        rows.append(bar(t("bar_edge", lang), f"{edge:.2f}x", min(100.0, 100 * edge), "#0F5C5C"))
     if seam is not None:
-        rows.append(bar("Seam edges around old border", f"{seam:.3f}", min(100.0, 400 * seam), "#F2A900"))
+        rows.append(bar(t("bar_seam", lang), f"{seam:.3f}", min(100.0, 400 * seam), "#F2A900"))
     return "<div class='nija-card' style='border-left-color:#FFC20E'>" + "".join(rows) + "</div>"
 
 
-def plain_bullets(result, images):
-    """3-5 sentences built only from measured numbers."""
+def plain_bullets(result, images, lang="EN"):
+    """3-5 sentences built only from measured numbers, in the chosen language."""
     g1, g2, m = result["checks"]["gate1"], result["checks"]["gate2"], result["checks"]["measure"]
     out = []
     if g1["passed"]:
-        gps = f" GPS says {g1['gps_distance_m']:.0f} m apart." if g1.get("gps_distance_m") is not None else ""
-        out.append(f"Same place: {g1['inliers']} matching points agree on one camera transform ({g1['inlier_ratio']:.0%} of matches).{gps}")
-        out.append(homography_words(describe_homography(images.get("H"), images["before_bgr"].shape)))
+        gps = t("b_gps", lang, m=f"{g1['gps_distance_m']:.0f}") if g1.get("gps_distance_m") is not None else ""
+        out.append(t("b_same", lang, inl=g1["inliers"], ratio=f"{100 * g1['inlier_ratio']:.0f}", gps=gps))
+        out.append(homography_words(describe_homography(images.get("H"), images["before_bgr"].shape), lang))
     else:
-        out.append(f"Not the same place: {g1['reason']}.")
+        out.append(t("b_notsame", lang, reason=reason_text(g1["reason"], lang)))
     if not g2["passed"]:
-        out.append(f"Photo not accepted as real and fresh: {g2['reason']}.")
+        out.append(t("b_gate2", lang, reason=reason_text(g2["reason"], lang)))
     b, a = m.get("before_defect_px") or 0, m.get("after_defect_px") or 0
     if b and m.get("residual_area_pct") is not None:
         change = 100 * (1 - a / b)
-        word = "smaller" if change >= 0 else "larger"
-        out.append(f"Defect area went from {b:,} px to {a:,} px ({abs(change):.0f}% {word}).")
+        out.append(t("b_area", lang, b=f"{b:,}", a=f"{a:,}", pct=f"{abs(change):.0f}",
+                     word=t("w_smaller" if change >= 0 else "w_larger", lang)))
         if m.get("edge_density_ratio") is not None:
-            out.append(f"Edge density inside the defect is now {m['edge_density_ratio']:.2f}x what it was "
-                       f"({'smoother surface' if m['edge_density_ratio'] < 1 else 'still rough'}).")
+            out.append(t("b_edge", lang, r=f"{m['edge_density_ratio']:.2f}",
+                         word=t("w_smoother" if m["edge_density_ratio"] < 1 else "w_rough", lang)))
     elif m.get("method"):
-        out.append(f"Measurement: {m['method']}.")
+        out.append(t("b_measure", lang, m=reason_text(m["method"], lang)))
     return out[:5]

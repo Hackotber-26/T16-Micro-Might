@@ -48,6 +48,26 @@ def narrate(verdict, score, checks, use_gemma=True):
     return template_note(verdict, score, checks)
 
 
+def translate_kn(text, facts):
+    """Gemma translates a message into simple Kannada. Returned only if it is Kannada and every number in it
+    is a measured number (numbers_ok); otherwise None, and the caller keeps the Kannada template."""
+    try:
+        import ollama
+
+        r = ollama.Client(timeout=config.GEMMA_TIMEOUT_S).chat(
+            model=config.GEMMA_MODEL,
+            messages=[{"role": "system", "content": "Translate the user's message into simple, polite Kannada written in "
+                                                    "Kannada script. Keep every number exactly as it is. Return JSON {kannada}."},
+                      {"role": "user", "content": text}],
+            format="json", options={"temperature": 0, "num_predict": 300}, keep_alive="30m", think=False)
+        kn = str(json.loads(r.message.content).get("kannada", "")).strip()
+    except Exception:
+        return None
+    if kn and re.search(r"[ಀ-೿]", kn) and numbers_ok(kn, facts):
+        return kn
+    return None
+
+
 def warm_up():
     """Loads the model into memory so the first real note is fast (about 20 s cold, about 3 s warm)."""
     try:

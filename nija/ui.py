@@ -99,6 +99,8 @@ img {{ border-radius: 10px; }}
   .nija-verdict {{ font-size: 1.5rem; padding: 12px 18px; width: 100%; justify-content: center; }}
   .nija-step {{ padding: 5px 10px; font-size: 0.85rem; }}
   iframe[data-testid="stIFrame"] {{ height: 330px !important; }}  /* before/after slider: no blank space on phones */
+  [role="tablist"] {{ flex-wrap: wrap; row-gap: 4px; }}  /* long Kannada tab names wrap instead of hiding */
+  [role="tab"][aria-selected="true"] {{ background: #E3F1EF; border-radius: 10px; }}
   /* keep the sticky header on one row */
   .st-key-nija_header [data-testid="stHorizontalBlock"] {{ flex-wrap: nowrap; }}
   .st-key-nija_header [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{ min-width: 0 !important; flex: 1 1 auto !important; }}
