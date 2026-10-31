@@ -15,6 +15,11 @@
 | Evaluation | 60 s | Numbers from `eval/results.md` only |
 | Why Karnataka | 60 s | Fact cards with sources, where Nija fits, limits card |
 
+**New screens:**
+- **Demo sign-in** opens first: pick `citizen@demo`, `officer@demo` or `auditor@demo` (banner says there is no real authentication; "Skip sign-in" gives the old app).
+- **Auditor summary** (Re-inspection queue, Auditor role): table by GBA corporation with % Verified, CSV download and a claimed vs verified chart; location cards link to Google Maps when GPS exists.
+- **Platform roadmap** tab: intake, then Nija verification, then outputs. Green = built, grey dashed = planned; calls and WhatsApp intake are planned, not built.
+
 **Photoreal pairs (synthetic AI images):** in **Geometry lab** pick `p02 (partial, synthetic AI photos, box)` or `p01`. The box measure compares the tapped defect box with the road around it. Say plainly: "these are AI-generated test photos; fully fixed pairs score Partial here, an honest limit."
 
 ### Problem (45 s)

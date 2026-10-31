@@ -89,6 +89,11 @@ h3, h4 {{ color: {TEAL}; }}
 .nija-node.hot {{ background: {SAFFRON}; border-color: {SAFFRON}; color: {INK}; }}
 .nija-node.core {{ background: {TEAL}; border-color: {TEAL}; color: #fff; }}
 .nija-arrow {{ color: {MUTED}; font-weight: 800; }}
+.nija-node.built {{ background: #E3F4E8; border-color: #1B7F3B; color: #14532D; }}
+.nija-node.planned {{ background: #EEF0F1; border-color: #B9C1C5; color: #5B6B66; border-style: dashed; }}
+.nija-node small {{ display: block; font-size: 0.75rem; font-weight: 700; margin-top: 2px; }}
+.nija-col {{ display: flex; flex-direction: column; gap: 8px; flex: 1 1 220px; }}
+.nija-col h5 {{ margin: 0 0 2px 0; color: {TEAL}; text-align: center; font-size: 0.95rem; }}
 
 /* Verdict badge */
 .nija-verdict {{

@@ -164,6 +164,8 @@ def show_location(result, ctx):
     if pts:
         st.map(pd.DataFrame(pts, columns=["lat", "lon"]), zoom=16, size=8)
         st.caption(L("loc_map_note"))
+        lat, lon = pts[-1]
+        st.link_button(L("loc_gmaps"), f"https://www.google.com/maps?q={lat},{lon}")
 
 
 def show_retake_guide(images):
@@ -380,6 +382,52 @@ def show_why_karnataka():
     ui.card(f"<p>{html.escape(L('why_limits_body'))}</p>", title=L("why_limits"), accent=ui.SAFFRON)
 
 
+def show_corporation_summary(rows):
+    """Auditor table by GBA corporation (from each pair's label.json), CSV download and a claimed vs verified chart."""
+    st.markdown(f"#### {L('sum_title')}")
+    corps = evidence.CORPORATIONS + ["Unassigned"]
+    stats = {c: {v: 0 for v in config.QUEUE_PRIORITY} for c in corps}
+    for r in rows:
+        corp = _read_label(config.PAIRS_DIR / r["pair"]).get("corporation") or "Unassigned"
+        stats.setdefault(corp, {v: 0 for v in config.QUEUE_PRIORITY})[r["verdict"]] += 1
+    table = []
+    for corp, counts in stats.items():
+        n = sum(counts.values())
+        table.append({L("sum_corp"): L("sum_unassigned") if corp == "Unassigned" else corp, L("sum_reviewed"): n,
+                      **{verdict_label(v, lang()): counts[v] for v in config.QUEUE_PRIORITY},
+                      L("sum_pct"): round(100 * counts["Verified"] / n, 1) if n else None})
+    st.dataframe(table, hide_index=True, width="stretch")
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=list(table[0].keys()))
+    w.writeheader()
+    w.writerows(table)
+    st.download_button(L("sum_csv"), buf.getvalue().encode("utf-8-sig"), file_name="nija_corporation_summary.csv",
+                       mime="text/csv", key="sum_csv")
+    st.markdown(f"**{L('sum_chart')}**")
+    chart = pd.DataFrame({L("sum_claimed"): [row[L("sum_reviewed")] for row in table],
+                          L("sum_verified"): [row[verdict_label("Verified", lang())] for row in table]},
+                         index=[row[L("sum_corp")] for row in table])
+    st.bar_chart(chart, stack=False, color=[ui.SAFFRON, ui.TEAL])
+    st.caption(L("sum_note"))
+
+
+def show_roadmap():
+    """Intake -> Nija verification -> outputs. Green = built today, grey dashed = planned."""
+    st.subheader(L("rm_title"))
+    node = lambda key, built: (f"<span class='nija-node {'built' if built else 'planned'}'>{html.escape(L(key))}"
+                               f"<small>{html.escape(L('rm_built') if built else L('rm_planned'))}</small></span>")
+    col = lambda title, nodes: f"<div class='nija-col'><h5>{html.escape(L(title))}</h5>{''.join(nodes)}</div>"
+    st.markdown(
+        "<div class='nija-card'><div class='nija-flow' style='align-items:stretch'>"
+        + col("rm_intake", [node("rm_web", True), node("rm_app", False), node("rm_whatsapp", False), node("rm_1533", False)])
+        + "<span class='nija-arrow' style='align-self:center'>→</span>"
+        + col("rm_verify", [node("rm_gates", True), node("rm_measure", True)])
+        + "<span class='nija-arrow' style='align-self:center'>→</span>"
+        + col("rm_outputs", [node("rm_citizen", True), node("rm_officer", True), node("rm_auditor", True)])
+        + "</div></div>", unsafe_allow_html=True)
+    st.info(L("rm_honest"))
+
+
 def both(key):
     """English / Kannada label that never changes, so uploaded files survive a language switch."""
     return f"{_t(key, 'EN')} / {_t(key, 'KN')}"
@@ -460,8 +508,8 @@ with st.sidebar:
     ward = st.text_input(L("loc_ward"), key="ward")
     st.caption(L("loc_officer_note"))
 
-tab_verify, tab_lab, tab_fool, tab_queue, tab_why = st.tabs(
-    [L("tab_verify"), L("lab_tab"), L("tab_fool"), L("tab_queue"), L("tab_why")])
+tab_verify, tab_lab, tab_fool, tab_queue, tab_why, tab_roadmap = st.tabs(
+    [L("tab_verify"), L("lab_tab"), L("tab_fool"), L("tab_queue"), L("tab_why"), L("tab_roadmap")])
 
 with tab_verify:
     col_b, col_a = st.columns(2)
@@ -574,6 +622,8 @@ with tab_queue:
                 w.writerows(table)
                 st.download_button(L("aud_csv"), buf.getvalue().encode("utf-8-sig"), file_name="nija_queue.csv",
                                    mime="text/csv", key="q_csv")
+            if role() == "auditor":
+                show_corporation_summary(cached_queue(signature))
             if role() == "auditor" and rows:
                 st.markdown(f"#### {L('aud_evidence')}")
                 p_name = st.selectbox(L("aud_pick"), [r["pair"] for r in rows], key="aud_pair")
@@ -585,6 +635,9 @@ with tab_queue:
                         _, context = with_context(result, pair)
                         st.download_button(L("aud_evidence"), evidence.evidence_zip(result, images, pair, context),
                                            file_name=f"nija_evidence_{p_name}.zip", mime="application/zip", key="aud_zip")
+
+with tab_roadmap:
+    show_roadmap()
 
 with tab_why:
     show_why_karnataka()
