@@ -12,6 +12,8 @@ data/pairs/*
 data/history/*
 !data/pairs/.gitkeep
 !data/history/.gitkeep
+data/known_hashes.json
+eval/results_cache/
 *.pt
 *.pth
 *.onnx

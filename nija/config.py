@@ -1,37 +1,36 @@
 """All tunable thresholds in one place, so the team tunes numbers here instead of inside the modules.
 Change a value, rerun, and every gate / measurement / verdict picks it up."""
 
-CONFIG = {
-    "image_max_side": 1024,  # photos are downscaled to this before any CV work
-    "gate1": {
-        "orb_features": 3000,
-        "ratio_test": 0.75,  # Lowe ratio test for ORB matches
-        "ransac_px": 5.0,  # RANSAC reprojection error in pixels
-        "min_inliers": 25,
-        "min_inlier_ratio": 0.25,
-        "max_gps_distance_m": 50,  # only used when both photos have GPS
-        "max_heading_diff_deg": 60,  # only used when both photos have compass heading
-    },
-    "gate2": {
-        "duplicate_max_distance": 2,  # pHash distance at or below this = same photo resubmitted
-        "history_dir": "data/history",  # earlier submissions to check the after photo against
-    },
-    "measure": {
-        "texture_window": 21,  # window (px) for local texture (std-dev)
-        "rough_k": 1.8,  # "rough" = texture above rough_k x median texture of the before photo
-        "rough_floor": 6.0,  # minimum texture value to count as rough
-        "close_px": 25,  # morphology size used to join rough pixels into one defect blob
-        "diff_threshold": 40,  # grey-level change (after CLAHE) that counts as "changed"
-        "smooth_ratio": 0.6,  # after texture below this x before texture = surface got smoother
-        "min_defect_area_pct": 0.5,  # defect blob must cover at least this % of the before photo
-        "min_coverage": 0.5,  # after photo must show at least this fraction of the defect
-    },
-    "verdict": {
-        "verified_max_residual_pct": 15,
-        "partial_max_residual_pct": 60,
-    },
-    "narrate": {
-        "model": "gemma4:e2b",
-        "timeout_s": 180,
-    },
-}
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = ROOT / "data"
+PAIRS_DIR = DATA_DIR / "pairs"
+
+# Images
+MAX_SIDE = 1280  # long edge (px) photos are downscaled to before any CV work
+
+# Gate 1: same place
+GPS_MAX_M = 40  # only judged when both photos have GPS
+HEADING_MAX_DEG = 60  # only judged when both photos have a compass heading
+ORB_FEATURES = 2000
+LOWE_RATIO = 0.75
+RANSAC_PX = 5.0  # RANSAC reprojection error in pixels
+MIN_INLIERS = 25
+MIN_INLIER_RATIO = 0.25
+
+# Gate 2: real and fresh
+DUP_MAX = 6  # pHash Hamming distance at or below this = reused photo
+KNOWN_HASHES = DATA_DIR / "known_hashes.json"  # used from Step 3
+HISTORY_DIR = DATA_DIR / "history"  # Step 1 stand-in for known_hashes.json
+
+# Measure (Step 1 placeholder: grey-level change, not defect segmentation)
+DIFF_THRESHOLD = 30  # grey-level change (after brightness match) that counts as "changed"
+
+# Verdict: score = clip(1 - residual_area_pct / 100, 0, 1)
+T_VERIFIED = 0.80
+T_PARTIAL = 0.40
+
+# Narrator
+GEMMA_MODEL = "gemma4:e2b"
+GEMMA_TIMEOUT_S = 20

@@ -4,13 +4,12 @@ Passes only if enough matches agree on one geometric transform; that homography 
 import cv2
 import numpy as np
 
-from .config import CONFIG
+from . import config
 from .exif import gps_distance_m
 
 
 def check_same_place(before_bgr, after_bgr, before_exif, after_exif):
     """Returns (result dict, homography mapping after -> before, or None)."""
-    cfg = CONFIG["gate1"]
     result = {
         "passed": False,
         "reason": "",
@@ -26,8 +25,8 @@ def check_same_place(before_bgr, after_bgr, before_exif, after_exif):
     if None not in (before_exif["lat"], after_exif["lat"]):
         dist = gps_distance_m(before_exif["lat"], before_exif["lon"], after_exif["lat"], after_exif["lon"])
         result["gps_distance_m"] = round(dist, 1)
-        if dist > cfg["max_gps_distance_m"]:
-            result["reason"] = f"GPS says photos are {dist:.0f} m apart (limit {cfg['max_gps_distance_m']} m)"
+        if dist > config.GPS_MAX_M:
+            result["reason"] = f"GPS says photos are {dist:.0f} m apart (limit {config.GPS_MAX_M} m)"
             return result, None
         notes.append(f"GPS {dist:.0f} m apart")
     else:
@@ -37,12 +36,12 @@ def check_same_place(before_bgr, after_bgr, before_exif, after_exif):
         diff = abs(before_exif["heading"] - after_exif["heading"]) % 360
         diff = min(diff, 360 - diff)
         result["heading_diff_deg"] = round(diff, 1)
-        if diff > cfg["max_heading_diff_deg"]:
-            result["reason"] = f"compass headings differ by {diff:.0f} deg (limit {cfg['max_heading_diff_deg']})"
+        if diff > config.HEADING_MAX_DEG:
+            result["reason"] = f"compass headings differ by {diff:.0f} deg (limit {config.HEADING_MAX_DEG})"
             return result, None
 
     # Visual match: ORB + ratio test + RANSAC homography
-    orb = cv2.ORB_create(nfeatures=cfg["orb_features"])
+    orb = cv2.ORB_create(nfeatures=config.ORB_FEATURES)
     kp_b, des_b = orb.detectAndCompute(cv2.cvtColor(before_bgr, cv2.COLOR_BGR2GRAY), None)
     kp_a, des_a = orb.detectAndCompute(cv2.cvtColor(after_bgr, cv2.COLOR_BGR2GRAY), None)
     if des_b is None or des_a is None or len(kp_b) < 10 or len(kp_a) < 10:
@@ -50,15 +49,15 @@ def check_same_place(before_bgr, after_bgr, before_exif, after_exif):
         return result, None
 
     pairs = cv2.BFMatcher(cv2.NORM_HAMMING).knnMatch(des_a, des_b, k=2)
-    good = [p[0] for p in pairs if len(p) == 2 and p[0].distance < cfg["ratio_test"] * p[1].distance]
+    good = [p[0] for p in pairs if len(p) == 2 and p[0].distance < config.LOWE_RATIO * p[1].distance]
     result["good_matches"] = len(good)
-    if len(good) < cfg["min_inliers"]:
-        result["reason"] = f"only {len(good)} feature matches (need {cfg['min_inliers']}); likely a different place"
+    if len(good) < config.MIN_INLIERS:
+        result["reason"] = f"only {len(good)} feature matches (need {config.MIN_INLIERS}); likely a different place"
         return result, None
 
     src = np.float32([kp_a[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     dst = np.float32([kp_b[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-    H, mask = cv2.findHomography(src, dst, cv2.RANSAC, cfg["ransac_px"])
+    H, mask = cv2.findHomography(src, dst, cv2.RANSAC, config.RANSAC_PX)
     if H is None:
         result["reason"] = "could not fit a homography between the photos"
         return result, None
@@ -74,7 +73,7 @@ def check_same_place(before_bgr, after_bgr, before_exif, after_exif):
         result["reason"] = f"geometric transform is implausible (scale factor {det:.2f})"
         return result, None
 
-    if inliers >= cfg["min_inliers"] and ratio >= cfg["min_inlier_ratio"]:
+    if inliers >= config.MIN_INLIERS and ratio >= config.MIN_INLIER_RATIO:
         result["passed"] = True
         notes.append(f"{inliers} RANSAC inliers ({ratio:.0%} of matches)")
         result["reason"] = "same place: " + "; ".join(notes)
@@ -82,6 +81,6 @@ def check_same_place(before_bgr, after_bgr, before_exif, after_exif):
 
     result["reason"] = (
         f"weak visual match: {inliers} inliers, {ratio:.0%} ratio "
-        f"(need {cfg['min_inliers']} and {cfg['min_inlier_ratio']:.0%})"
+        f"(need {config.MIN_INLIERS} and {config.MIN_INLIER_RATIO:.0%})"
     )
     return result, None

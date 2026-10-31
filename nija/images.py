@@ -5,11 +5,11 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps
 
-from .config import CONFIG
+from . import config
 
 
 def load_bgr(path, max_side=None):
-    max_side = max_side or CONFIG["image_max_side"]
+    max_side = max_side or config.MAX_SIDE
     with Image.open(path) as im:
         im = ImageOps.exif_transpose(im).convert("RGB")
         im.thumbnail((max_side, max_side))
