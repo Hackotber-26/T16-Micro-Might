@@ -23,3 +23,4 @@ models/
 Thumbs.db
 .vscode/
 .idea/
+data/pairs_fake/

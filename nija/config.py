@@ -23,6 +23,7 @@ MIN_INLIER_RATIO = 0.25
 DUP_MAX = 6  # pHash Hamming distance at or below this = reused photo
 KNOWN_HASHES = DATA_DIR / "known_hashes.json"  # cache of pHashes of every photo in data/pairs
 REUSE_MAX_SHIFT_PX = 8  # near-identical hash AND corners move less than this under Gate 1's homography = same photo
+REUSE_MAX_PIXEL_DIFF = 4.0  # ...or, after alignment, mean grey difference below this = resized/re-saved copy of the same photo
 SCREEN_PEAK_MIN = 4.0  # FFT moire: strongest periodic peak (log units above the radial average) to call it a screen
 SCREEN_BANDING_MIN = 0.45  # fraction of empty grey levels inside the photo's range (posterised / low colour depth)
 

@@ -53,7 +53,8 @@ python -m venv .venv                                   # first time only
 | `nija/narrate.py` | Gemma 4 (`gemma4:e2b`, local, text only, temperature 0) writes the officer note and citizen message from the measured numbers. Falls back to a template if Ollama is down or slow, or if Gemma writes a number not in the input. |
 | `nija/reinspect.py` | Runs `verify()` on every pair in `data/pairs` and ranks them Not fixed > Partial > Cannot verify > Verified. Feeds the app's re-inspection queue tab. |
 | `eval/screen_score.py` | Prints the screen-recapture scores for any photos. Use it to calibrate the screen thresholds in config.py. |
-| `eval/` | Evaluation scripts (Step 6): fake generation and metrics on `data/pairs`. |
+| `eval/make_fakes.py` | Builds SYNTHETIC fake closures from your real pairs (reused old photo, photo of a screen, different place) into `data/pairs_fake/`, labelled unverifiable. |
+| `eval/run_eval.py` | Runs Nija on all pairs and fakes: confusion matrix, precision/recall at catching bad closures, a Gemma-only yes/no baseline and seconds per pair. Writes `eval/results.md` and `results.csv`. |
 
 ## Data shoot checklist (target: 40 pairs)
 - **12 fixed, 8 partial, 8 not fixed** real pairs. Fakes (reused photo, screen photo, different place) are generated later by `eval/make_fakes.py` and labelled synthetic.
@@ -67,6 +68,13 @@ python -m venv .venv                                   # first time only
   - [ ] Copy photos by USB/cable or Google Drive original files. **No WhatsApp forwarding** (it strips EXIF and recompresses)
   - [ ] Staged garbage clear-ups (litter before, cleaned after, some left for partial) are fine. Write `"staged"` in `note`, honestly
 - Photos in `data/pairs/` are git-ignored by default. Remove that rule in `.gitignore` if the team wants to commit them.
+
+## Reproduce the evaluation
+```powershell
+.\.venv\Scripts\python.exe eval/make_fakes.py      # synthetic fakes from data/pairs -> data/pairs_fake
+.\.venv\Scripts\python.exe eval/run_eval.py        # writes eval/results.md + eval/results.csv (add --no-baseline to skip Gemma)
+```
+The Gemma baseline takes about 4-6 s per pair the first time. Answers are cached in `eval/results_cache/`, so reruns take seconds.
 
 ## Honest limitations (so far)
 - Defect segmentation is a classical heuristic, not a trained model. Auto-detect can pick the wrong blob (use the manual box). A very dark fresh patch can look like a remaining pothole. Garbage is weaker than potholes.

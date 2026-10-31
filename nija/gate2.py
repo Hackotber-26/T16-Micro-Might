@@ -14,8 +14,8 @@ from .images import load_bgr, load_pil
 IMAGE_NAMES = ("before.jpg", "after.jpg")
 
 
-def check_fresh(before_path, after_path, before_exif, after_exif, H=None, after_bgr=None):
-    """H = Gate 1 homography (after -> before) or None. after_bgr = already-loaded after photo (optional)."""
+def check_fresh(before_path, after_path, before_exif, after_exif, H=None, after_bgr=None, before_bgr=None):
+    """H = Gate 1 homography (after -> before) or None. after_bgr / before_bgr = already-loaded photos (optional)."""
     result = {
         "passed": False,
         "reason": "",
@@ -35,13 +35,17 @@ def check_fresh(before_path, after_path, before_exif, after_exif, H=None, after_
     dist = int(hash_after - hash_before)
     result["dup_hash_distance"] = dist
     shift = _corner_shift(H, after_bgr.shape if after_bgr is not None else None)
-    if dist <= config.DUP_MAX and (shift is None or shift <= config.REUSE_MAX_SHIFT_PX):
-        how = "" if shift is None else f", camera moved only {shift:.1f} px"
+    mad = _aligned_pixel_diff(H, before_bgr, after_bgr)
+    same_framing = shift is None or shift <= config.REUSE_MAX_SHIFT_PX
+    same_pixels = mad is not None and mad <= config.REUSE_MAX_PIXEL_DIFF  # resized / re-saved copy of the same picture
+    if dist <= config.DUP_MAX and (same_framing or same_pixels):
+        how = "" if shift is None else f", camera moved {shift:.1f} px, aligned pixel difference {mad:.1f}"
         result["reused_from"] = "before photo"
         result["reason"] = f"reused photo: after is the before photo again (pHash distance {dist}{how})"
         return result
     if dist <= config.DUP_MAX:
-        notes.append(f"looks very similar to before (pHash {dist}) but camera moved {shift:.0f} px, so a real retake")
+        notes.append(f"looks very similar to before (pHash {dist}) but camera moved {shift:.0f} px and pixels differ "
+                     f"({mad:.1f}), so a real retake")
 
     # 2. Reused photo: same picture as any other photo in data/pairs (skipping the pair under test)?
     known = load_known_hashes()
@@ -142,6 +146,20 @@ def _corner_shift(H, shape):
     h, w = shape[:2]
     corners = np.float32([[0, 0], [w, 0], [w, h], [0, h]]).reshape(-1, 1, 2)
     return float(np.linalg.norm(cv2.perspectiveTransform(corners, H) - corners, axis=2).mean())
+
+
+def _aligned_pixel_diff(H, before_bgr, after_bgr):
+    """Mean grey-level difference after aligning after onto before. A real retake differs (light, noise, angle);
+    a resized or re-saved copy of the same picture is nearly 0."""
+    if H is None or before_bgr is None or after_bgr is None:
+        return None
+    h, w = before_bgr.shape[:2]
+    aligned = cv2.warpPerspective(cv2.cvtColor(after_bgr, cv2.COLOR_BGR2GRAY), H, (w, h)).astype(np.float32)
+    valid = cv2.warpPerspective(np.full(after_bgr.shape[:2], 255, np.uint8), H, (w, h))
+    valid = cv2.erode(valid, np.ones((15, 15), np.uint8)) > 0
+    if not valid.any():
+        return None
+    return float(np.abs(cv2.cvtColor(before_bgr, cv2.COLOR_BGR2GRAY).astype(np.float32) - aligned)[valid].mean())
 
 
 def _fmt(ts):
