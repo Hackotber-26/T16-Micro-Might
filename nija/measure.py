@@ -30,6 +30,8 @@ def measure_residual(before_bgr, after_bgr, H, roi=None, defect_type=None):
     """H maps after -> before. roi = (x, y, w, h) as FRACTIONS 0..1 of the after photo, or None for auto-detect.
     Returns (contract dict, debug images dict)."""
     defect_type = defect_type or config.DEFECT_TYPE
+    if roi and config.ROI_CHANGE_MODE:
+        return _measure_roi_change(before_bgr, after_bgr, H, roi, defect_type)
     if roi and config.ROI_DISTRIBUTION_MEASURE:
         return measure_box(before_bgr, after_bgr, H, roi, defect_type)
     h, w = after_bgr.shape[:2]
@@ -232,3 +234,112 @@ def _local_std(gray, k):
 
 def _rgb(bgr):
     return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+
+
+# ---- ROI change mode: for photoreal pairs where texture segmentation fails -------------------------------------------
+def _norm_l(bgr):
+    """Lightness with slow lighting removed and local contrast normalised, so a sunnier after photo is not 'change'."""
+    L = cv2.GaussianBlur(cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)[:, :, 0].astype(np.float32), (5, 5), 0)
+    hp = L - cv2.GaussianBlur(L, (0, 0), 25)
+    return hp / (np.sqrt(cv2.GaussianBlur(hp * hp, (0, 0), 25)) + 4)
+
+
+def _chroma(bgr):
+    return cv2.cvtColor(cv2.GaussianBlur(bgr, (5, 5), 0), cv2.COLOR_BGR2LAB).astype(np.float32)[:, :, 1:]
+
+
+def _measure_roi_change(before_bgr, after_bgr, H, roi, defect_type, grown=False):
+    """Inside the user's box: (a) defect = pixels in the BEFORE photo that differ from the road just outside the box;
+    (b) changed = pixels whose normalised appearance differs between aligned before and after (threshold calibrated on the
+    ring around the box, so lighting/noise is not counted); repaired = changed share of the defect."""
+    h, w = after_bgr.shape[:2]
+    # A tight box (mostly defect) leaves no road inside it to compare against: then grow it (ROI_BOX_GROW total) and retry
+    g = config.ROI_BOX_GROW / 2 if grown else 0.0
+    x0, y0 = max(0.0, roi[0] - g * roi[2]), max(0.0, roi[1] - g * roi[3])
+    x1, y1 = min(1.0, roi[0] + roi[2] * (1 + g)), min(1.0, roi[1] + roi[3] * (1 + g))
+    roi = (x0, y0, x1 - x0, y1 - y0)
+    Hi = np.linalg.inv(H)
+    bal = cv2.warpPerspective(before_bgr, Hi, (w, h))
+    valid = cv2.warpPerspective(np.full(before_bgr.shape[:2], 255, np.uint8), Hi, (w, h)) > 0
+    valid = cv2.erode(valid.astype(np.uint8), np.ones((15, 15), np.uint8)) > 0
+    x, y, rw, rh = int(roi[0] * w), int(roi[1] * h), int(roi[2] * w), int(roi[3] * h)
+    box = np.zeros((h, w), bool)
+    box[y:y + rh, x:x + rw] = True
+    ring = (cv2.dilate(box.astype(np.uint8), np.ones((int(rh * 0.5) | 1, int(rw * 0.5) | 1), np.uint8)) > 0) & ~box & valid
+    empty = {"residual_area_pct": None, "before_defect_px": 0, "after_defect_px": 0, "relief_change": None,
+             "defect_type": defect_type, "method": "ROI change mode: no defect found inside the box"}
+    if not ring.any():
+        return empty, {"before_aligned": _rgb(bal)}
+
+    # (a) defect extent in the before photo: colour distance to the road ring (robust threshold)
+    lab = cv2.cvtColor(cv2.GaussianBlur(bal, (7, 7), 0), cv2.COLOR_BGR2LAB).astype(np.float32)
+    ref = np.median(lab[ring], axis=0)
+    dist = np.linalg.norm(lab - ref, axis=2)
+    mad = np.median(np.abs(dist[ring] - np.median(dist[ring])))
+    thr_d = max(np.median(dist[ring]) + 4 * 1.48 * mad, config.ROI_DEFECT_MIN_DIST)
+    defect = ((dist > thr_d) & box).astype(np.uint8)
+    defect = cv2.morphologyEx(defect, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
+    defect = cv2.morphologyEx(defect, cv2.MORPH_CLOSE, np.ones((21, 21), np.uint8)) > 0
+    method = "ROI change mode (changed share of the defect inside the box)"
+    share = defect.sum() / max((box & valid).sum(), 1)
+    if not grown and (share > config.ROI_TIGHT_SHARE or share < config.ROI_DEFECT_MIN_SHARE):
+        return _measure_roi_change(before_bgr, after_bgr, H, roi, defect_type, grown=True)
+    if grown:
+        method += "; box was mostly defect, grown before measuring"
+    if defect.sum() < config.ROI_DEFECT_MIN_SHARE * box.sum():
+        defect, method = box & valid, "ROI change mode (defect not separable from the road, whole box used)"
+        if defect.sum() == 0:
+            return empty, {"before_aligned": _rgb(bal)}
+
+    # (b) what changed between before and after
+    d = (cv2.GaussianBlur(np.abs(_norm_l(bal) - _norm_l(after_bgr)), (0, 0), 3)
+         + 0.08 * cv2.GaussianBlur(np.linalg.norm(_chroma(bal) - _chroma(after_bgr), axis=2), (0, 0), 3))
+    rd = d[ring]
+    # robust (median + MAD) so a repair that spills past the box into the ring does not inflate the threshold
+    thr_c = max(np.median(rd) + config.ROI_CHANGE_K * 1.48 * np.median(np.abs(rd - np.median(rd))), config.ROI_CHANGE_MIN)
+    changed = ((d > thr_c) & box).astype(np.uint8)
+    changed = cv2.morphologyEx(changed, cv2.MORPH_OPEN, np.ones((7, 7), np.uint8))
+    changed = cv2.morphologyEx(changed, cv2.MORPH_CLOSE, np.ones((25, 25), np.uint8)) > 0
+
+    # direction check: a repair makes the defect look MORE like the surrounding road (colour and roughness), not less
+    lab_a = cv2.cvtColor(cv2.GaussianBlur(after_bgr, (7, 7), 0), cv2.COLOR_BGR2LAB).astype(np.float32)
+    ref_a = np.median(lab_a[ring], axis=0)
+    dist_b = np.linalg.norm(lab - ref, axis=2)[defect].mean()
+    dist_a = np.linalg.norm(lab_a - ref_a, axis=2)[defect].mean()
+    rough_b = _local_std(cv2.cvtColor(bal, cv2.COLOR_BGR2GRAY), 15)
+    rough_a = _local_std(cv2.cvtColor(after_bgr, cv2.COLOR_BGR2GRAY), 15)
+    rr_b, rr_a = rough_b[ring].mean() + 1e-3, rough_a[ring].mean() + 1e-3
+    gap_b = abs(rough_b[defect].mean() - rr_b) / rr_b
+    gap_a = abs(rough_a[defect].mean() - rr_a) / rr_a
+    closer = (dist_a < config.ROI_DIRECTION_RATIO * dist_b) or (gap_a < config.ROI_DIRECTION_RATIO * gap_b)
+    repaired = float((changed & defect).sum() / defect.sum()) if closer else 0.0
+    eb = cv2.Canny(cv2.cvtColor(bal, cv2.COLOR_BGR2GRAY), 60, 160) > 0
+    ea = cv2.Canny(cv2.cvtColor(after_bgr, cv2.COLOR_BGR2GRAY), 60, 160) > 0
+    ring_b = (cv2.dilate(defect.astype(np.uint8), np.ones((21, 21), np.uint8)) > 0) & ~(
+        cv2.erode(defect.astype(np.uint8), np.ones((21, 21), np.uint8)) > 0)
+    result = {
+        "edge_density_ratio": round(float(ea[defect].mean() / eb[defect].mean()) if eb[defect].mean() > 0 else 1.0, 3),
+        "seam_edge_density": round(float(ea[ring_b & valid].mean()) if (ring_b & valid).any() else 0.0, 3),
+        "residual_area_pct": round(100 * (1 - repaired), 1),
+        "before_defect_px": int(defect.sum()),
+        "after_defect_px": int((defect & ~changed).sum()),
+        "relief_change": None,
+        "repaired_share": round(repaired, 3),
+        "residual_adjusted": round(min(max(1 - repaired, 0.0), 1.0), 3),
+        "defect_area_pct": round(100 * defect.sum() / valid.sum(), 2),
+        "defect_type": defect_type,
+        "method": method,
+        "mode": "roi_change",
+        "looks_like_road_after": bool(closer),
+    }
+    b_ov, a_ov = bal.copy(), after_bgr.copy()
+    b_ov[defect] = (0.5 * b_ov[defect] + [0, 0, 127]).astype(np.uint8)
+    unfixed = defect & ~changed
+    a_ov[unfixed] = (0.5 * a_ov[unfixed] + [0, 0, 127]).astype(np.uint8)
+    a_ov[changed & defect] = (0.5 * a_ov[changed & defect] + [0, 127, 0]).astype(np.uint8)
+    contours, _ = cv2.findContours(defect.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for img in (b_ov, a_ov):
+        cv2.drawContours(img, contours, -1, (255, 255, 255), 2)  # white = defect found
+        cv2.rectangle(img, (x, y), (x + rw, y + rh), (0, 255, 255), 4)  # yellow = the box
+    return result, {"before_aligned": _rgb(bal), "before_overlay": _rgb(b_ov), "after_overlay": _rgb(a_ov),
+                    "region": defect, "def_b": defect, "def_a": unfixed}

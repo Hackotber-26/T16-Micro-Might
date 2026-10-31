@@ -89,6 +89,8 @@ def build_facts(verdict, score, checks):
         reason = f"real-and-fresh photo check failed: {g2['reason']}"
     elif score is None:
         reason = m.get("method", "the repair area could not be measured")
+    elif m.get("mode") == "roi_change":
+        reason = plain_roi(m)
     else:
         reason = f"{m.get('residual_area_pct')}% of the original {m.get('defect_type')} area is still present"
     facts = {
@@ -101,6 +103,14 @@ def build_facts(verdict, score, checks):
     if score is not None:
         facts["fix_score_0_to_1"] = score
     return facts
+
+
+def plain_roi(m):
+    """Plain words for the ROI change mode (no technical terms)."""
+    pct = round(100 * m.get("repaired_share", 0))
+    if m.get("looks_like_road_after"):
+        return f"about {pct}% of the marked defect has been repaired and now looks like the surrounding road"
+    return f"the marked defect changed, but it does not look more like the surrounding road, so about {pct}% counts as repaired"
 
 
 def numbers_ok(text, facts):
@@ -120,6 +130,13 @@ def template_note(verdict, score, checks):
         why = failed["reason"] if not failed["passed"] else m["method"]
         officer = f"Cannot verify this closure: {why}. Send for physical re-inspection."
         citizen = "We could not confirm this repair from the photos, so it has been sent for a re-check."
+    elif m.get("mode") == "roi_change":
+        officer = f"Verdict {verdict}: {plain_roi(m)}."
+        citizen = {
+            "Verified": "The photos show the repair was done. Thank you for reporting it.",
+            "Partial": "The photos show the repair is only partly done. It has been flagged for follow-up.",
+            "Not fixed": "The photos show the problem is still there. It has been sent back for repair.",
+        }[verdict]
     else:
         officer = (
             f"Verdict {verdict} (score {score:.2f}): {m['residual_area_pct']}% of the original {m['defect_type']} area "

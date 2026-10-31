@@ -41,6 +41,16 @@ MIN_DEFECT_PCT = 0.3  # defect blob must cover at least this % of the photo
 EDGE_WEIGHT = 0.2  # share of the score taken from edge density change (rest = residual area)
 
 # Box-based look-alike measure: used ONLY when a defect box (roi) is given. roi=None keeps the segmentation above.
+ROI_CHANGE_MODE = True  # with a manual box: judge by changed share of the defect (robust on photoreal pairs); False = old path
+ROI_DEFECT_MIN_DIST = 10.0  # min Lab distance from the road ring to count a pixel as defect
+ROI_DEFECT_MIN_SHARE = 0.03  # defect must cover at least this share of the box
+ROI_CHANGE_K = 4.0  # change threshold = ring median + K x robust spread
+ROI_CHANGE_MIN = 0.35
+ROI_DIRECTION_RATIO = 0.8  # after must be closer to the road than before by this factor (colour or roughness)
+ROI_T_VERIFIED = 0.45  # repaired share of the defect needed for Verified (calibrated on 5 AI-generated pairs only)
+ROI_T_PARTIAL = 0.30  # ...and for Partial
+ROI_BOX_GROW = 0.20  # if the box is mostly defect (too tight), grow it by this share (half each side) and measure again
+ROI_TIGHT_SHARE = 0.60  # box counts as too tight when the defect fills more than this share of it
 ROI_DISTRIBUTION_MEASURE = True
 BOX_RING_SCALE = 0.21  # ring around the box grows each side by this x box size (ring area about equal to box area)
 BOX_W_TEXTURE = 0.8  # defect-ness = weighted sum of: local texture (std of L) difference box vs ring...

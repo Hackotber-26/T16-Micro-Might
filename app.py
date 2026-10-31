@@ -2,6 +2,7 @@
 Try to fool Nija, Re-inspection queue, Why Karnataka. Run with: python -m streamlit run app.py"""
 
 import csv
+import json
 import html
 import io
 import tempfile
@@ -199,13 +200,21 @@ def show_metrics(result):
     m1, m2, m3 = st.columns(3)
     m1.metric(L("m_score"), L("na") if score is None else f"{score:.2f}")
     residual = result["checks"]["measure"]["residual_area_pct"]
-    m2.metric(L("m_residual"), L("na") if residual is None else f"{residual}%")
+    m = result["checks"]["measure"]
+    if m.get("mode") == "roi_change":
+        m2.metric(L("m_repaired"), f"{100 * m.get('repaired_share', 0):.0f}%")
+    else:
+        m2.metric(L("m_residual"), L("na") if residual is None else f"{residual}%")
     m3.metric(L("m_time"), f"{result['timings_ms']['total'] / 1000:.1f} s")
 
 
 def show_result(result, images, ctx, pair):
     """Same result, three views: citizen (plain), officer (geometry and checks), auditor (evidence)."""
     full, context = with_context(result, pair)
+    g2 = result["checks"]["gate2"]
+    if not context["gps_before"] and not context["gps_after"] and not g2.get("before_time") and not g2.get("after_time"):
+        st.markdown(ui.pill(L("chip_demo") if st.session_state.get("verify_demo") and ctx == "verify" else L("chip_noexif"),
+                            "muted"), unsafe_allow_html=True)
     badge(result["verdict"])
     if role() == "citizen":
         text, src, key = citizen_text(result, ctx)
@@ -244,6 +253,8 @@ def show_result(result, images, ctx, pair):
         c1, c2 = st.columns(2)
         c1.image(images["before_overlay"], width="stretch", caption=L("ov_before"))
         c2.image(images["after_overlay"], width="stretch", caption=L("ov_after"))
+        if result["checks"]["measure"].get("mode") == "roi_change":
+            st.caption(L("legend_roi"))
     show_geometry_compact(result, images)
     show_location(result, context)
     show_checks(result, images)
@@ -317,7 +328,11 @@ def show_geometry_lab(result, images, live=True):
         show_or_skip(visuals.heatmap_image(images), "lab_skip_gate1")
         pause()
         stage("s6_t", "s6_c")
-        show_or_skip(visuals.contours_image(images, m), "lab_skip_measure")
+        if m.get("mode") == "roi_change" and "after_overlay" in images:
+            st.image(images["after_overlay"], width="stretch")
+            st.caption(L("legend_roi"))
+        else:
+            show_or_skip(visuals.contours_image(images, m), "lab_skip_measure")
         pause()
         stage("s7_t", "s7_c")
         bars = visuals.residual_bars_html(m, lang())
@@ -522,9 +537,27 @@ with tab_verify:
     if st.button(L("btn_verify"), type="primary", disabled=not (before_file and after_file), key="btn_verify"):
         st.session_state["verify_pair"] = upload_pair(before_file, after_file)
         st.session_state["last_pair"] = st.session_state["verify_pair"]
+        st.session_state["verify_demo"] = None
+    # Demo pairs: AI-generated, box already set (samples/demo, demo.json)
+    demo_meta = json.loads((SAMPLES / "demo" / "demo.json").read_text()) if (SAMPLES / "demo" / "demo.json").exists() else {}
+    if demo_meta:
+        d1, d2, d3 = st.columns([3, 2, 1], vertical_alignment="bottom")
+        demo = d1.selectbox(L("demo_pairs"), [None] + list(demo_meta), key="demo_pick",
+                            format_func=lambda n: L("demo_pick") if n is None else L("demo_" + n))
+        reverse = d2.checkbox(L("demo_reverse"), key="demo_reverse")
+        if d3.button(L("demo_load"), key="demo_load", disabled=demo is None, width="stretch"):
+            b, a = SAMPLES / "demo" / f"{demo}_before.jpg", SAMPLES / "demo" / f"{demo}_after.jpg"
+            if reverse:
+                b, a = a, b
+            st.session_state["verify_pair"] = (b.read_bytes(), b.name, a.read_bytes(), a.name)
+            st.session_state["last_pair"] = st.session_state["verify_pair"]
+            st.session_state["verify_demo"] = {"name": demo, "reverse": reverse, **demo_meta[demo]}
     if st.session_state.get("verify_pair"):
         pair = st.session_state["verify_pair"]
-        result, images = safe_verify(pair)
+        dm = st.session_state.get("verify_demo")
+        if dm and dm.get("reverse"):
+            st.warning(L("demo_reverse_note"))
+        result, images = safe_verify(pair, box=tuple(dm["roi"]) if dm else None, kind=dm["type"] if dm else None)
         if result:
             show_result(result, images, "verify", pair)
             st.caption(L("honesty"))

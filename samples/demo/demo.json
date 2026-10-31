@@ -1,0 +1,74 @@
+{
+ "garbage_fixed": {
+  "type": "garbage",
+  "label": "fixed",
+  "roi": [
+   0.2,
+   0.36,
+   0.55,
+   0.4
+  ],
+  "synthetic": true,
+  "source": "AI-generated img3 -> img1"
+ },
+ "pothole_fixed": {
+  "type": "pothole",
+  "label": "fixed",
+  "roi": [
+   0.34,
+   0.55,
+   0.38,
+   0.24
+  ],
+  "synthetic": true,
+  "source": "AI-generated img6 -> img8"
+ },
+ "pothole_partial": {
+  "type": "pothole",
+  "label": "partial",
+  "roi": [
+   0.34,
+   0.55,
+   0.38,
+   0.24
+  ],
+  "synthetic": true,
+  "source": "AI-generated img6 -> img7"
+ },
+ "pothole_notfixed": {
+  "type": "pothole",
+  "label": "not_fixed",
+  "roi": [
+   0.34,
+   0.55,
+   0.38,
+   0.24
+  ],
+  "synthetic": true,
+  "source": "AI-generated img6 -> img9"
+ },
+ "pothole_notfixed2": {
+  "type": "pothole",
+  "label": "not_fixed",
+  "roi": [
+   0.23,
+   0.55,
+   0.33,
+   0.22
+  ],
+  "synthetic": true,
+  "source": "AI-generated img4 -> img5"
+ },
+ "pothole_fixed2": {
+  "type": "pothole",
+  "label": "fixed",
+  "roi": [
+   0.25,
+   0.55,
+   0.5,
+   0.3
+  ],
+  "synthetic": true,
+  "source": "AI-generated img10 -> img11"
+ }
+}

@@ -371,6 +371,27 @@ KN.update({
     "rm_honest": "ಕರೆ ಮತ್ತು WhatsApp ಮೂಲಕ ದೂರು ಸ್ವೀಕಾರ ಯೋಜಿತ ಸಂಯೋಜನೆಗಳು, ಇನ್ನೂ ನಿರ್ಮಿಸಿಲ್ಲ.",
 })
 
+EN.update({
+    "m_repaired": "Repaired share", "legend_roi": "Green = repaired, red = still open, yellow = the box, white outline = defect found.",
+    "chip_demo": "AI-generated demo pair, no EXIF", "chip_noexif": "No EXIF in these photos (time and GPS unknown)",
+    "demo_pairs": "Demo pairs (AI-generated, box already set)", "demo_pick": "(choose a demo pair)", "demo_load": "Load demo pair",
+    "demo_reverse": "Reverse the photos (after used as before)",
+    "demo_reverse_note": "Reversed: the system should refuse to call this Verified.",
+    "demo_garbage_fixed": "Garbage, cleaned", "demo_pothole_fixed": "Pothole, patched", "demo_pothole_partial": "Pothole, half patched",
+    "demo_pothole_notfixed": "Pothole, not repaired (new light)", "demo_pothole_notfixed2": "Pothole, not repaired",
+    "demo_pothole_fixed2": "Pothole, patched (second street)",
+})
+KN.update({
+    "m_repaired": "ದುರಸ್ತಿಯಾದ ಪಾಲು", "legend_roi": "ಹಸಿರು = ದುರಸ್ತಿ, ಕೆಂಪು = ಇನ್ನೂ ತೆರೆದಿದೆ, ಹಳದಿ = ಪೆಟ್ಟಿಗೆ, ಬಿಳಿ ಗೆರೆ = ಪತ್ತೆಯಾದ ಸಮಸ್ಯೆ.",
+    "chip_demo": "AI ರಚಿತ ಡೆಮೊ ಜೋಡಿ, EXIF ಇಲ್ಲ", "chip_noexif": "ಈ ಫೋಟೋಗಳಲ್ಲಿ EXIF ಇಲ್ಲ (ಸಮಯ ಮತ್ತು GPS ತಿಳಿದಿಲ್ಲ)",
+    "demo_pairs": "ಡೆಮೊ ಜೋಡಿಗಳು (AI ರಚಿತ, ಪೆಟ್ಟಿಗೆ ಸಿದ್ಧ)", "demo_pick": "(ಡೆಮೊ ಜೋಡಿ ಆರಿಸಿ)", "demo_load": "ಡೆಮೊ ಜೋಡಿ ತೆರೆಯಿರಿ",
+    "demo_reverse": "ಫೋಟೋಗಳನ್ನು ಅದಲುಬದಲು ಮಾಡಿ (ನಂತರದ ಫೋಟೋ ಮೊದಲು)",
+    "demo_reverse_note": "ಅದಲುಬದಲು: ವ್ಯವಸ್ಥೆ ಇದನ್ನು ದೃಢಪಟ್ಟಿದೆ ಎಂದು ಹೇಳಬಾರದು.",
+    "demo_garbage_fixed": "ಕಸ, ಸ್ವಚ್ಛಗೊಳಿಸಲಾಗಿದೆ", "demo_pothole_fixed": "ಗುಂಡಿ, ಮುಚ್ಚಲಾಗಿದೆ", "demo_pothole_partial": "ಗುಂಡಿ, ಅರ್ಧ ಮುಚ್ಚಲಾಗಿದೆ",
+    "demo_pothole_notfixed": "ಗುಂಡಿ, ದುರಸ್ತಿ ಆಗಿಲ್ಲ (ಬೇರೆ ಬೆಳಕು)", "demo_pothole_notfixed2": "ಗುಂಡಿ, ದುರಸ್ತಿ ಆಗಿಲ್ಲ",
+    "demo_pothole_fixed2": "ಗುಂಡಿ, ಮುಚ್ಚಲಾಗಿದೆ (ಎರಡನೇ ರಸ್ತೆ)",
+})
+
 LANGS = {"EN": EN, "ಕನ್ನಡ": KN, "KN": KN}
 
 
@@ -441,6 +462,16 @@ def note_kn(verdict, score, checks):
         return {"officer": f"ಈ ದುರಸ್ತಿಯನ್ನು ಪರಿಶೀಲಿಸಲು ಆಗಲಿಲ್ಲ: {why}. ಸ್ಥಳಕ್ಕೆ ಹೋಗಿ ಮರುಪರಿಶೀಲನೆ ಮಾಡಿ.",
                 "citizen": "ಫೋಟೋಗಳಿಂದ ಈ ದುರಸ್ತಿಯನ್ನು ದೃಢಪಡಿಸಲು ಆಗಲಿಲ್ಲ. ಇದನ್ನು ಮರುಪರಿಶೀಲನೆಗೆ ಕಳುಹಿಸಲಾಗಿದೆ.",
                 "source": "template"}
+    if m.get("mode") == "roi_change":
+        pct = round(100 * m.get("repaired_share", 0))
+        what = (f"ಗುರುತಿಸಿದ ಸಮಸ್ಯೆಯ ಸುಮಾರು {pct}% ದುರಸ್ತಿಯಾಗಿದೆ ಮತ್ತು ಈಗ ಸುತ್ತಲಿನ ರಸ್ತೆಯಂತೆ ಕಾಣುತ್ತದೆ"
+                if m.get("looks_like_road_after") else
+                f"ಗುರುತಿಸಿದ ಸಮಸ್ಯೆ ಬದಲಾಗಿದೆ, ಆದರೆ ಸುತ್ತಲಿನ ರಸ್ತೆಯಂತೆ ಕಾಣುತ್ತಿಲ್ಲ; ಸುಮಾರು {pct}% ಮಾತ್ರ ದುರಸ್ತಿ ಎಂದು ಎಣಿಸಲಾಗಿದೆ")
+        officer = f"ತೀರ್ಮಾನ: {verdict_label(verdict, 'KN')}. {what}."
+        citizen = {"Verified": "ಫೋಟೋಗಳ ಪ್ರಕಾರ ದುರಸ್ತಿ ಆಗಿದೆ. ದೂರು ನೀಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದಗಳು.",
+                   "Partial": "ಫೋಟೋಗಳ ಪ್ರಕಾರ ದುರಸ್ತಿ ಅರ್ಧ ಮಾತ್ರ ಆಗಿದೆ. ಉಳಿದ ಕೆಲಸಕ್ಕಾಗಿ ಮತ್ತೆ ಕಳುಹಿಸಲಾಗಿದೆ.",
+                   "Not fixed": "ಫೋಟೋಗಳ ಪ್ರಕಾರ ಸಮಸ್ಯೆ ಇನ್ನೂ ಹಾಗೇ ಇದೆ. ದುರಸ್ತಿಗಾಗಿ ಮತ್ತೆ ಕಳುಹಿಸಲಾಗಿದೆ."}[verdict]
+        return {"officer": officer, "citizen": citizen, "source": "template"}
     kind = t(m.get("defect_type") or "pothole", "KN")
     officer = (f"ತೀರ್ಮಾನ: {verdict_label(verdict, 'KN')} (ಅಂಕ {score:.2f}). ಮೂಲ {kind} ಪ್ರದೇಶದ "
                f"{m['residual_area_pct']}% ಇನ್ನೂ ಉಳಿದಿದೆ ({g1['inliers']} ಹೊಂದುವ ಬಿಂದುಗಳು).")

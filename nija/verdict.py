@@ -15,6 +15,10 @@ def decide(gate1, gate2, measure):
         return "Cannot verify", None
 
     score = round(min(max(1.0 - adjusted, 0.0), 1.0), 3)  # score = clip(1 - residual_adjusted, 0, 1)
+    if measure.get("mode") == "roi_change":  # score = repaired share of the defect; own thresholds
+        if score >= config.ROI_T_VERIFIED:
+            return "Verified", score
+        return ("Partial", score) if score >= config.ROI_T_PARTIAL else ("Not fixed", score)
     if score >= config.T_VERIFIED:
         return "Verified", score
     if score >= config.T_PARTIAL:
