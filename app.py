@@ -444,8 +444,8 @@ def show_roadmap():
 
 
 def both(key):
-    """English / Kannada label that never changes, so uploaded files survive a language switch."""
-    return f"{_t(key, 'EN')} / {_t(key, 'KN')}"
+    """Upload label in the chosen language (kept short)."""
+    return L(key)
 
 
 def upload_pair(up_b, up_a):
@@ -460,17 +460,9 @@ def sample_pair(after_file):
 start_gemma_warm_up()
 st.session_state.setdefault("lang", "EN")
 st.session_state.setdefault("role", "officer")
-with st.container(key="nija_header"):
-    h1, h2, h3 = st.columns([2, 3, 2], vertical_alignment="center")
-    h3.segmented_control("Language", ["EN", "ಕನ್ನಡ"], key="lang", label_visibility="collapsed")
-    h2.segmented_control(L("role"), ROLES, key="role", format_func=lambda r: L("role_" + r), label_visibility="collapsed")
-    h1.markdown(L("brand"))
-ui.hero(L("app_title"), L("hero_promise"))
-ui.step_pills([L(f"step{i}") for i in range(1, 6)])
-st.caption(L("tagline"))
 
 
-# Demo sign-in: callbacks run before the next script run, so they may set the header's role widget safely
+# Demo sign-in: callbacks run before the next script run, so they may set the role safely
 def sign_in(account):
     st.session_state["account"] = account
     st.session_state["role"] = ACCOUNTS[account]
@@ -485,195 +477,215 @@ def sign_out():
     st.session_state["signin_skipped"] = False
 
 
-if not st.session_state.get("account") and not st.session_state.get("signin_skipped"):
-    st.subheader(L("signin_title"))
-    st.info(L("signin_banner"))
-    st.write(L("signin_intro"))
-    for col, (account, acct_role) in zip(st.columns(3), ACCOUNTS.items()):
-        with col:
-            ui.card(f"<p style='font-size:1.1rem'><b>{html.escape(L('role_' + acct_role))}</b></p>"
-                    f"<p class='src'>{html.escape(account)}</p>", accent=ui.SAFFRON if acct_role == "citizen" else ui.TEAL)
-            st.button(L("signin_as", role=L("role_" + acct_role)), key=f"signin_{acct_role}", type="primary",
+signed_in = bool(st.session_state.get("account"))
+skipped = bool(st.session_state.get("signin_skipped"))
+
+with st.container(key="nija_header"):
+    h1, h2, h3 = st.columns([3, 3, 2], vertical_alignment="center")
+    h1.markdown(L("brand"))
+    if skipped and not signed_in:  # old behaviour: switch views freely
+        h2.segmented_control(L("role"), ROLES, key="role", format_func=lambda r: L("role_" + r), label_visibility="collapsed")
+    elif signed_in:
+        h2.caption(f"{L('role_' + role())} · {L('demo_tag')}")
+    h3.segmented_control("Language", ["EN", "ಕನ್ನಡ"], key="lang", label_visibility="collapsed")
+
+if not signed_in and not skipped:
+    _, mid, _ = st.columns([1, 2, 1])
+    with mid:
+        ui.hero(L("app_title"), L("hero_promise"))
+        st.markdown(f"#### {L('signin_intro')}")
+        for account, acct_role in ACCOUNTS.items():
+            st.button(L("role_" + acct_role), key=f"signin_{acct_role}", type="primary",
                       on_click=sign_in, args=(account,), width="stretch")
-    st.button(L("signin_skip"), key="signin_skip", type="tertiary", on_click=skip_sign_in)
+        st.caption(L("signin_banner"))
+        st.button(L("signin_skip"), key="signin_skip", type="tertiary", on_click=skip_sign_in)
     st.stop()
 
-if st.session_state.get("account"):
-    b1, b2 = st.columns([5, 1], vertical_alignment="center")
-    b1.info(f"{L('signin_banner')} {L('signed_as', acct=st.session_state['account'])}")
-    b2.button(L("signout"), key="signout", on_click=sign_out, width="stretch")
+if signed_in:
+    st.button(L("signout"), key="signout", on_click=sign_out, type="tertiary")
 
-with st.sidebar:
-    st.header(L("settings"))
-    defect_type = st.radio(L("defect_type"), ["pothole", "garbage"], horizontal=True, format_func=L, key="defect_type")
-    use_gemma = st.checkbox(L("use_gemma"), value=True, key="use_gemma")
-    use_roi = st.checkbox(L("use_roi"), key="use_roi")
-    roi = None
-    if use_roi:
-        st.caption(L("roi_caption"))
-        rx = st.slider(L("roi_x"), 0, 95, 25, key="roi_x")
-        ry = st.slider(L("roi_y"), 0, 95, 25, key="roi_y")
-        rw = st.slider(L("roi_w"), 5, 100 - rx, min(50, 100 - rx), key="roi_w")
-        rh = st.slider(L("roi_h"), 5, 100 - ry, min(50, 100 - ry), key="roi_h")
-        roi = (rx / 100, ry / 100, rw / 100, rh / 100)
-    st.divider()
-    st.subheader(L("loc_title"))
-    corporation = st.selectbox(L("loc_corp"), [None] + evidence.CORPORATIONS, key="corporation",
-                               format_func=lambda c: L("loc_pick") if c is None else c)
-    ward = st.text_input(L("loc_ward"), key="ward")
-    st.caption(L("loc_officer_note"))
+# Defaults (citizen view has no settings); officers and the skip view get the sidebar
+defect_type, use_gemma, roi, corporation, ward = "pothole", True, None, None, ""
+if role() == "officer" or skipped:
+    with st.sidebar:
+        st.header(L("settings"))
+        defect_type = st.radio(L("defect_type"), ["pothole", "garbage"], horizontal=True, format_func=L, key="defect_type")
+        use_gemma = st.checkbox(L("use_gemma"), value=True, key="use_gemma")
+        use_roi = st.checkbox(L("use_roi"), key="use_roi")
+        if use_roi:
+            st.caption(L("roi_caption"))
+            rx = st.slider(L("roi_x"), 0, 95, 25, key="roi_x")
+            ry = st.slider(L("roi_y"), 0, 95, 25, key="roi_y")
+            rw = st.slider(L("roi_w"), 5, 100 - rx, min(50, 100 - rx), key="roi_w")
+            rh = st.slider(L("roi_h"), 5, 100 - ry, min(50, 100 - ry), key="roi_h")
+            roi = (rx / 100, ry / 100, rw / 100, rh / 100)
+        st.divider()
+        st.subheader(L("loc_title"))
+        corporation = st.selectbox(L("loc_corp"), [None] + evidence.CORPORATIONS, key="corporation",
+                                   format_func=lambda c: L("loc_pick") if c is None else c)
+        ward = st.text_input(L("loc_ward"), key="ward")
+        st.caption(L("loc_officer_note"))
 
-tab_verify, tab_lab, tab_fool, tab_queue, tab_why, tab_roadmap = st.tabs(
-    [L("tab_verify"), L("lab_tab"), L("tab_fool"), L("tab_queue"), L("tab_why"), L("tab_roadmap")])
+# One job per role: each sees only its own pages (skip sign-in keeps every page)
+PAGES = {"verify": "tab_verify", "lab": "lab_tab", "fool": "tab_fool", "queue": "tab_queue", "why": "tab_why", "roadmap": "tab_roadmap"}
+ROLE_PAGES = {"citizen": ["verify"], "officer": ["verify", "lab", "fool"], "auditor": ["queue", "why", "roadmap"]}
+shown = list(PAGES) if (skipped and not signed_in) else ROLE_PAGES[role()]
+T = dict(zip(shown, st.tabs([L(PAGES[k]) for k in shown]))) if len(shown) > 1 else {shown[0]: st.container()}
 
-with tab_verify:
-    col_b, col_a = st.columns(2)
-    before_file = col_b.file_uploader(both("up_before"), type=["jpg", "jpeg", "png", "webp"], key="up_before")
-    after_file = col_a.file_uploader(both("up_after"), type=["jpg", "jpeg", "png", "webp"], key="up_after")
-    if before_file:
-        col_b.image(before_file, width="stretch")
-    if after_file:
-        col_a.image(after_file, width="stretch")
-    if st.button(L("btn_verify"), type="primary", disabled=not (before_file and after_file), key="btn_verify"):
-        st.session_state["verify_pair"] = upload_pair(before_file, after_file)
-        st.session_state["last_pair"] = st.session_state["verify_pair"]
-        st.session_state["verify_demo"] = None
-    # Demo pairs: AI-generated, box already set (samples/demo, demo.json)
-    demo_meta = json.loads((SAMPLES / "demo" / "demo.json").read_text()) if (SAMPLES / "demo" / "demo.json").exists() else {}
-    if demo_meta:
-        d1, d2, d3 = st.columns([3, 2, 1], vertical_alignment="bottom")
-        demo = d1.selectbox(L("demo_pairs"), [None] + list(demo_meta), key="demo_pick",
-                            format_func=lambda n: L("demo_pick") if n is None else L("demo_" + n))
-        reverse = d2.checkbox(L("demo_reverse"), key="demo_reverse")
-        if d3.button(L("demo_load"), key="demo_load", disabled=demo is None, width="stretch"):
-            b, a = SAMPLES / "demo" / f"{demo}_before.jpg", SAMPLES / "demo" / f"{demo}_after.jpg"
-            if reverse:
-                b, a = a, b
-            st.session_state["verify_pair"] = (b.read_bytes(), b.name, a.read_bytes(), a.name)
+if "verify" in T:
+    with T["verify"]:
+        col_b, col_a = st.columns(2)
+        before_file = col_b.file_uploader(both("up_before"), type=["jpg", "jpeg", "png", "webp"], key="up_before")
+        after_file = col_a.file_uploader(both("up_after"), type=["jpg", "jpeg", "png", "webp"], key="up_after")
+        if before_file:
+            col_b.image(before_file, width="stretch")
+        if after_file:
+            col_a.image(after_file, width="stretch")
+        if st.button(L("btn_verify"), type="primary", disabled=not (before_file and after_file), key="btn_verify"):
+            st.session_state["verify_pair"] = upload_pair(before_file, after_file)
             st.session_state["last_pair"] = st.session_state["verify_pair"]
-            st.session_state["verify_demo"] = {"name": demo, "reverse": reverse, **demo_meta[demo]}
-    if st.session_state.get("verify_pair"):
-        pair = st.session_state["verify_pair"]
-        dm = st.session_state.get("verify_demo")
-        if dm and dm.get("reverse"):
-            st.warning(L("demo_reverse_note"))
-        result, images = safe_verify(pair, box=tuple(dm["roi"]) if dm else None, kind=dm["type"] if dm else None)
-        if result:
-            show_result(result, images, "verify", pair)
-            st.caption(L("honesty"))
+            st.session_state["verify_demo"] = None
+        # Demo pairs: AI-generated, box already set (samples/demo, demo.json)
+        demo_meta = json.loads((SAMPLES / "demo" / "demo.json").read_text()) if (SAMPLES / "demo" / "demo.json").exists() else {}
+        if demo_meta:
+            with st.expander(L("demo_pairs")):
+                demo = st.selectbox(L("demo_pairs"), [None] + list(demo_meta), key="demo_pick", label_visibility="collapsed",
+                                    format_func=lambda n: L("demo_pick") if n is None else L("demo_" + n))
+                reverse = st.checkbox(L("demo_reverse"), key="demo_reverse")
+                if st.button(L("demo_load"), key="demo_load", disabled=demo is None):
+                    b, a = SAMPLES / "demo" / f"{demo}_before.jpg", SAMPLES / "demo" / f"{demo}_after.jpg"
+                    if reverse:
+                        b, a = a, b
+                    st.session_state["verify_pair"] = (b.read_bytes(), b.name, a.read_bytes(), a.name)
+                    st.session_state["last_pair"] = st.session_state["verify_pair"]
+                    st.session_state["verify_demo"] = {"name": demo, "reverse": reverse, **demo_meta[demo]}
+        if st.session_state.get("verify_pair"):
+            pair = st.session_state["verify_pair"]
+            dm = st.session_state.get("verify_demo")
+            if dm and dm.get("reverse"):
+                st.warning(L("demo_reverse_note"))
+            result, images = safe_verify(pair, box=tuple(dm["roi"]) if dm else None, kind=dm["type"] if dm else None)
+            if result:
+                show_result(result, images, "verify", pair)
+                st.caption(L("honesty"))
 
-with tab_lab:
-    st.write(L("lab_intro"))
-    boxed = {p.name: _read_label(p) for p in list_pairs() if label_roi(_read_label(p))}  # pairs with a saved defect box
-    options = list(LAB_SAMPLES) + [f"pair:{n}" for n in boxed] + (["lab_last"] if "last_pair" in st.session_state else [])
-    pick = st.selectbox(L("lab_source"), options, index=1, key="lab_pick",
-                        format_func=lambda o: f"{o[5:]} ({boxed[o[5:]].get('label', '')}, synthetic AI photos, box)" if o.startswith("pair:") else L(o))
-    clicked = st.button(L("lab_run"), type="primary", key="lab_run")
-    if clicked:
-        if pick.startswith("pair:"):
-            d, lab = config.PAIRS_DIR / pick[5:], boxed[pick[5:]]
-            st.session_state["lab_pair"] = (((d / "before.jpg").read_bytes(), "before.jpg", (d / "after.jpg").read_bytes(), "after.jpg"),
-                                            label_roi(lab), lab.get("type"))
+if "lab" in T:
+    with T["lab"]:
+        st.write(L("lab_intro"))
+        boxed = {p.name: _read_label(p) for p in list_pairs() if label_roi(_read_label(p))}  # pairs with a saved defect box
+        options = list(LAB_SAMPLES) + [f"pair:{n}" for n in boxed] + (["lab_last"] if "last_pair" in st.session_state else [])
+        pick = st.selectbox(L("lab_source"), options, index=1, key="lab_pick",
+                            format_func=lambda o: f"{o[5:]} ({boxed[o[5:]].get('label', '')}, synthetic AI photos, box)" if o.startswith("pair:") else L(o))
+        clicked = st.button(L("lab_run"), type="primary", key="lab_run")
+        if clicked:
+            if pick.startswith("pair:"):
+                d, lab = config.PAIRS_DIR / pick[5:], boxed[pick[5:]]
+                st.session_state["lab_pair"] = (((d / "before.jpg").read_bytes(), "before.jpg", (d / "after.jpg").read_bytes(), "after.jpg"),
+                                                label_roi(lab), lab.get("type"))
+            else:
+                st.session_state["lab_pair"] = (st.session_state["last_pair"] if pick == "lab_last"
+                                                else sample_pair(LAB_SAMPLES[pick]), None, None)
+        if st.session_state.get("lab_pair"):
+            lab_pair, lab_box, lab_kind = st.session_state["lab_pair"]
+            result, images = safe_verify(lab_pair, gemma=False, box=lab_box, kind=lab_kind)
+            if result:
+                show_geometry_lab(result, images, live=clicked)
+
+if "fool" in T:
+    with T["fool"]:
+        st.write(L("fool_intro"))
+        cols = st.columns(len(ATTACKS) + 1)
+        cols[0].image(str(SAMPLES / "synthetic_before.jpg"), caption=L("fool_before_cap"), width="stretch")
+        for col, (key, file) in zip(cols[1:], ATTACKS.items()):
+            col.image(str(SAMPLES / file), caption=L(key + "_d"), width="stretch")
+            if col.button(L("attack", name=L(key)), key=f"attack_{key}", width="stretch"):
+                st.session_state["attack"] = key
+        attack = st.session_state.get("attack")
+        if attack in ATTACKS:
+            st.subheader(L("attack", name=L(attack)))
+            pair = sample_pair(ATTACKS[attack])
+            result, images = safe_verify(pair)
+            if result:
+                show_caught(result)
+                show_result(result, images, "attack", pair)
+
+        st.divider()
+        st.write(L("free_upload"))
+        fb, fa = st.columns(2)
+        fool_before = fb.file_uploader(both("fb_before"), type=["jpg", "jpeg", "png", "webp"], key="fool_before")
+        fool_after = fa.file_uploader(both("fb_after"), type=["jpg", "jpeg", "png", "webp"], key="fool_after")
+        if st.button(L("btn_try"), disabled=not (fool_before and fool_after), key="btn_try"):
+            st.session_state["fool_pair"] = upload_pair(fool_before, fool_after)
+        if st.session_state.get("fool_pair"):
+            pair = st.session_state["fool_pair"]
+            result, images = safe_verify(pair)
+            if result:
+                show_caught(result)
+                show_result(result, images, "free", pair)
+
+if "queue" in T:
+    with T["queue"]:
+        pairs = list_pairs()
+        st.write(L("queue_intro", order=" > ".join(verdict_label(v, lang()) for v in config.QUEUE_PRIORITY)))
+        if not pairs:
+            st.info(L("queue_empty"))
         else:
-            st.session_state["lab_pair"] = (st.session_state["last_pair"] if pick == "lab_last"
-                                            else sample_pair(LAB_SAMPLES[pick]), None, None)
-    if st.session_state.get("lab_pair"):
-        lab_pair, lab_box, lab_kind = st.session_state["lab_pair"]
-        result, images = safe_verify(lab_pair, gemma=False, box=lab_box, kind=lab_kind)
-        if result:
-            show_geometry_lab(result, images, live=clicked)
+            signature = tuple((p.name, (p / "before.jpg").stat().st_mtime, (p / "after.jpg").stat().st_mtime) for p in pairs)
+            if st.button(L("btn_refresh"), key="btn_refresh"):
+                cached_queue.clear()
+            with st.spinner(L("queue_spinner", n=len(pairs))):
+                try:
+                    rows = cached_queue(signature)
+                except Exception as e:
+                    st.error(L("err_queue", err=type(e).__name__))
+                    rows = []
+            if rows:
+                flags = evidence.feedback_counts()
+                ids = {p.name: evidence.photo_id((p / "before.jpg").read_bytes()) for p in pairs}
+                counts = {v: sum(r["verdict"] == v for r in rows) for v in config.QUEUE_PRIORITY}
+                for col, (v, n) in zip(st.columns(len(counts)), counts.items()):
+                    col.metric(verdict_label(v, lang()), n)
+                f1, f2 = st.columns(2)
+                show_v = f1.multiselect(L("aud_filter_verdict"), config.QUEUE_PRIORITY, default=config.QUEUE_PRIORITY,
+                                        format_func=lambda v: verdict_label(v, lang()), key="q_verdicts")
+                types = sorted({r["type"] for r in rows})
+                show_t = f2.multiselect(L("aud_filter_type"), types, default=types, format_func=lambda x: L(x) if x else "-",
+                                        key="q_types")
+                rows = [r for r in rows if r["verdict"] in show_v and r["type"] in show_t]
+                table = [{L("col_priority"): r["priority"], L("col_pair"): r["pair"],
+                          L("col_verdict"): verdict_label(r["verdict"], lang()), L("col_score"): r["score"],
+                          L("col_residual"): r["residual_%"], L("aud_flag"): ("🚩 " + str(flags[ids[r["pair"]]])) if flags.get(ids[r["pair"]]) else "",
+                          L("col_why"): reason_text(r["why"], lang()), L("col_type"): L(r["type"]) if r["type"] else "",
+                          L("col_label"): r["label (ground truth)"], L("col_ms"): r["ms"]} for r in rows]
+                st.dataframe(table, hide_index=True, width="stretch")
+                if table:
+                    buf = io.StringIO()
+                    w = csv.DictWriter(buf, fieldnames=list(table[0].keys()))
+                    w.writeheader()
+                    w.writerows(table)
+                    st.download_button(L("aud_csv"), buf.getvalue().encode("utf-8-sig"), file_name="nija_queue.csv",
+                                       mime="text/csv", key="q_csv")
+                if role() == "auditor":
+                    show_corporation_summary(cached_queue(signature))
+                if role() == "auditor" and rows:
+                    st.markdown(f"#### {L('aud_evidence')}")
+                    p_name = st.selectbox(L("aud_pick"), [r["pair"] for r in rows], key="aud_pair")
+                    if st.button(L("aud_build"), key="aud_build"):
+                        d = config.PAIRS_DIR / p_name
+                        pair = ((d / "before.jpg").read_bytes(), "before.jpg", (d / "after.jpg").read_bytes(), "after.jpg")
+                        result, images = safe_verify(pair, gemma=False)
+                        if result:
+                            _, context = with_context(result, pair)
+                            st.download_button(L("aud_evidence"), evidence.evidence_zip(result, images, pair, context),
+                                               file_name=f"nija_evidence_{p_name}.zip", mime="application/zip", key="aud_zip")
 
-with tab_fool:
-    st.write(L("fool_intro"))
-    cols = st.columns(len(ATTACKS) + 1)
-    cols[0].image(str(SAMPLES / "synthetic_before.jpg"), caption=L("fool_before_cap"), width="stretch")
-    for col, (key, file) in zip(cols[1:], ATTACKS.items()):
-        col.image(str(SAMPLES / file), caption=L(key + "_d"), width="stretch")
-        if col.button(L("attack", name=L(key)), key=f"attack_{key}", width="stretch"):
-            st.session_state["attack"] = key
-    attack = st.session_state.get("attack")
-    if attack in ATTACKS:
-        st.subheader(L("attack", name=L(attack)))
-        pair = sample_pair(ATTACKS[attack])
-        result, images = safe_verify(pair)
-        if result:
-            show_caught(result)
-            show_result(result, images, "attack", pair)
+if "roadmap" in T:
+    with T["roadmap"]:
+        show_roadmap()
 
-    st.divider()
-    st.write(L("free_upload"))
-    fb, fa = st.columns(2)
-    fool_before = fb.file_uploader(both("fb_before"), type=["jpg", "jpeg", "png", "webp"], key="fool_before")
-    fool_after = fa.file_uploader(both("fb_after"), type=["jpg", "jpeg", "png", "webp"], key="fool_after")
-    if st.button(L("btn_try"), disabled=not (fool_before and fool_after), key="btn_try"):
-        st.session_state["fool_pair"] = upload_pair(fool_before, fool_after)
-    if st.session_state.get("fool_pair"):
-        pair = st.session_state["fool_pair"]
-        result, images = safe_verify(pair)
-        if result:
-            show_caught(result)
-            show_result(result, images, "free", pair)
+if "why" in T:
+    with T["why"]:
+        show_why_karnataka()
 
-with tab_queue:
-    pairs = list_pairs()
-    st.write(L("queue_intro", order=" > ".join(verdict_label(v, lang()) for v in config.QUEUE_PRIORITY)))
-    if not pairs:
-        st.info(L("queue_empty"))
-    else:
-        signature = tuple((p.name, (p / "before.jpg").stat().st_mtime, (p / "after.jpg").stat().st_mtime) for p in pairs)
-        if st.button(L("btn_refresh"), key="btn_refresh"):
-            cached_queue.clear()
-        with st.spinner(L("queue_spinner", n=len(pairs))):
-            try:
-                rows = cached_queue(signature)
-            except Exception as e:
-                st.error(L("err_queue", err=type(e).__name__))
-                rows = []
-        if rows:
-            flags = evidence.feedback_counts()
-            ids = {p.name: evidence.photo_id((p / "before.jpg").read_bytes()) for p in pairs}
-            counts = {v: sum(r["verdict"] == v for r in rows) for v in config.QUEUE_PRIORITY}
-            for col, (v, n) in zip(st.columns(len(counts)), counts.items()):
-                col.metric(verdict_label(v, lang()), n)
-            f1, f2 = st.columns(2)
-            show_v = f1.multiselect(L("aud_filter_verdict"), config.QUEUE_PRIORITY, default=config.QUEUE_PRIORITY,
-                                    format_func=lambda v: verdict_label(v, lang()), key="q_verdicts")
-            types = sorted({r["type"] for r in rows})
-            show_t = f2.multiselect(L("aud_filter_type"), types, default=types, format_func=lambda x: L(x) if x else "-",
-                                    key="q_types")
-            rows = [r for r in rows if r["verdict"] in show_v and r["type"] in show_t]
-            table = [{L("col_priority"): r["priority"], L("col_pair"): r["pair"],
-                      L("col_verdict"): verdict_label(r["verdict"], lang()), L("col_score"): r["score"],
-                      L("col_residual"): r["residual_%"], L("aud_flag"): ("🚩 " + str(flags[ids[r["pair"]]])) if flags.get(ids[r["pair"]]) else "",
-                      L("col_why"): reason_text(r["why"], lang()), L("col_type"): L(r["type"]) if r["type"] else "",
-                      L("col_label"): r["label (ground truth)"], L("col_ms"): r["ms"]} for r in rows]
-            st.dataframe(table, hide_index=True, width="stretch")
-            if table:
-                buf = io.StringIO()
-                w = csv.DictWriter(buf, fieldnames=list(table[0].keys()))
-                w.writeheader()
-                w.writerows(table)
-                st.download_button(L("aud_csv"), buf.getvalue().encode("utf-8-sig"), file_name="nija_queue.csv",
-                                   mime="text/csv", key="q_csv")
-            if role() == "auditor":
-                show_corporation_summary(cached_queue(signature))
-            if role() == "auditor" and rows:
-                st.markdown(f"#### {L('aud_evidence')}")
-                p_name = st.selectbox(L("aud_pick"), [r["pair"] for r in rows], key="aud_pair")
-                if st.button(L("aud_build"), key="aud_build"):
-                    d = config.PAIRS_DIR / p_name
-                    pair = ((d / "before.jpg").read_bytes(), "before.jpg", (d / "after.jpg").read_bytes(), "after.jpg")
-                    result, images = safe_verify(pair, gemma=False)
-                    if result:
-                        _, context = with_context(result, pair)
-                        st.download_button(L("aud_evidence"), evidence.evidence_zip(result, images, pair, context),
-                                           file_name=f"nija_evidence_{p_name}.zip", mime="application/zip", key="aud_zip")
-
-with tab_roadmap:
-    show_roadmap()
-
-with tab_why:
-    show_why_karnataka()
-
-st.divider()
-st.caption(f"{_t('footer', 'EN')}  \n{_t('footer', 'KN')}")
+if is_kn(lang()):
+    st.caption(_t("footer", "KN"))

@@ -392,6 +392,18 @@ KN.update({
     "demo_pothole_fixed2": "ಗುಂಡಿ, ಮುಚ್ಚಲಾಗಿದೆ (ಎರಡನೇ ರಸ್ತೆ)",
 })
 
+# Short, simple wording (overrides the longer drafts above)
+EN.update({
+    "hero_promise": "Was the repair really done? Compare the two photos.",
+    "signin_intro": "Continue as", "signin_banner": "Demo only, no real sign-in.", "signin_skip": "Skip",
+    "demo_tag": "demo", "up_before": "Before photo", "up_after": "After photo", "demo_pairs": "Try a demo pair",
+})
+KN.update({
+    "hero_promise": "ದುರಸ್ತಿ ನಿಜವಾಗಿಯೂ ಆಗಿದೆಯೇ? ಎರಡು ಫೋಟೋಗಳನ್ನು ಹೋಲಿಸಿ.",
+    "signin_intro": "ಹೀಗೆ ಮುಂದುವರಿಯಿರಿ", "signin_banner": "ಡೆಮೊ ಮಾತ್ರ, ನಿಜವಾದ ಸೈನ್ ಇನ್ ಇಲ್ಲ.", "signin_skip": "ಬಿಟ್ಟುಬಿಡಿ",
+    "demo_tag": "ಡೆಮೊ", "up_before": "ಮೊದಲ ಫೋಟೋ", "up_after": "ನಂತರದ ಫೋಟೋ", "demo_pairs": "ಡೆಮೊ ಜೋಡಿ ಪ್ರಯತ್ನಿಸಿ",
+})
+
 LANGS = {"EN": EN, "ಕನ್ನಡ": KN, "KN": KN}
 
 
