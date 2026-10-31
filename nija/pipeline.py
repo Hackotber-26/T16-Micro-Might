@@ -1,4 +1,4 @@
-"""The one entry point everyone codes to: verify(before_path, after_path, roi=None) returns the contract dict.
+"""The one entry point everyone codes to: verify(before_path, after_path, roi=None, defect_type=None) returns the contract dict.
 It runs Gate 1, Gate 2, measure, verdict and narrate in order, and times each stage."""
 
 import time
@@ -20,8 +20,9 @@ SKIPPED_MEASURE = {
 }
 
 
-def verify(before_path, after_path, roi=None, debug=False):
-    """Returns the contract dict, or (dict, debug_images) when debug=True."""
+def verify(before_path, after_path, roi=None, defect_type=None, debug=False):
+    """roi = (x, y, w, h) as fractions 0..1 of the after photo, or None to auto-detect the defect.
+    defect_type = "pothole" | "garbage" (default from config). Returns the contract dict, or (dict, debug_images) when debug=True."""
     timings = {}
     t0 = time.perf_counter()
 
@@ -42,7 +43,7 @@ def verify(before_path, after_path, roi=None, debug=False):
 
     measure = dict(SKIPPED_MEASURE)
     if gate1["passed"] and gate2["passed"]:
-        measure, measure_images = measure_residual(before, after, H, roi)
+        measure, measure_images = measure_residual(before, after, H, roi, defect_type)
         images.update(measure_images)
     t = lap("measure", t)
 

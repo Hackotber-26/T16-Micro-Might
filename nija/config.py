@@ -26,10 +26,20 @@ REUSE_MAX_SHIFT_PX = 8  # near-identical hash AND corners move less than this un
 SCREEN_PEAK_MIN = 4.0  # FFT moire: strongest periodic peak (log units above the radial average) to call it a screen
 SCREEN_BANDING_MIN = 0.45  # fraction of empty grey levels inside the photo's range (posterised / low colour depth)
 
-# Measure (Step 1 placeholder: grey-level change, not defect segmentation)
-DIFF_THRESHOLD = 30  # grey-level change (after brightness match) that counts as "changed"
+# Measure: defect segmentation (classical CV heuristics)
+DEFECT_TYPE = "pothole"  # "pothole" or "garbage" (the app lets you switch)
+TEXTURE_WINDOW = 21  # window (px) for local texture (std-dev of lightness)
+DARK_BLOCK = 151  # adaptive threshold window: pixel must be darker than its surroundings in this window...
+DARK_C = 18  # ...by at least this many lightness levels (so a slightly darker fresh patch is NOT a pothole)
+ROUGH_MIN = 6.0  # pothole pixels must also be rough (local std above this); a smooth patch is not
+GARBAGE_SAT_MIN = 70  # garbage: colourful pixels (HSV saturation above this)...
+GARBAGE_ROUGH_MIN = 14.0  # ...or strongly textured clutter
+CLOSE_PX = 15  # morphology size joining defect pixels into one blob
+MIN_DEFECT_PCT = 0.3  # defect blob must cover at least this % of the photo
+EDGE_WEIGHT = 0.2  # share of the score taken from edge density change (rest = residual area)
 
-# Verdict: score = clip(1 - residual_area_pct / 100, 0, 1)
+# Verdict: residual_adjusted = (1 - EDGE_WEIGHT) * residual_area + EDGE_WEIGHT * min(edge_ratio, 1)
+#          score = clip(1 - residual_adjusted, 0, 1)
 T_VERIFIED = 0.80
 T_PARTIAL = 0.40
 
